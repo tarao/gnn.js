@@ -1,18 +1,31 @@
 (function(T /* top level */, B /* Base */) {
+    ////////////////////////////////////
+    // extended array
+
     var A;
     var toA = function(a){ return Array.prototype.slice.call(a); };
     A = T.Array = function() {
         var self = arguments.length == 1 && (arguments[0] instanceof Number) ?
                 new Array(arguments[0]) : toA(arguments);
         return B.setProto(self, A.prototype, function(obj, proto) {
-            B.merge(obj, proto);
+            B.addInterface(obj, A.methods, function(a, b, k) {
+                return A.prototype[k];
+            });
             B.addProperties(obj, A.properties);
+            B.addProperties(obj, A.privateProperties);
         });
     };
-    var Ap = A.prototype;
 
-    // extensions
-    A.interfaces = {
+    // exceptions
+    A.ArgumentError = function(msg) {
+        this.name = 'ArgumentError';
+        this.message = msg || '';
+    };
+    A.ArgumentError.prototype = new Error();
+    A.ArgumentError.prototype.constructor = A.ArgumentError;
+
+    // methods
+    A.methods = {
         // JavaScript 1.6 and 1.8 features
         indexOf: function(elt, from) {
             var o = this;
@@ -37,7 +50,7 @@
         },
         lastIndexOf: function(elt, from) {
             var o = this;
-            var len = t.length >>> 0;
+            var len = o.length >>> 0;
             if (len === 0) return -1;
             var n = len;
             if (typeof from != 'undefined') {
@@ -62,16 +75,16 @@
             }
             var rv = [];
             for (var i=0; i < len; i++) {
-                if (i in t) {
-                    var val = t[i]; // in case fun mutates this
-                    if (fun.call(thisp, val, i, t)) rv.push(val);
+                if (i in o) {
+                    var val = o[i]; // in case fun mutates this
+                    if (fun.call(thisp, val, i, o)) rv.push(val);
                 }
             }
             return rv;
         },
         forEach: function(fun, thisp) {
             var o = this;
-            var len = this.length >>> 0;
+            var len = o.length >>> 0;
             if (typeof fun != 'function') {
                 throw new TypeError('forEach: not a function');
             }
@@ -240,45 +253,34 @@
             for (var i=0; i < s.length; i++) {
                 if (s[i] == this) {
                     var msg = 'flatten: tried to flatten a recursive array';
-                    throw new TypeError(msg);
+                    throw new A.ArgumentError(msg);
                 }
             }
+            s.push(this);
+
             var o = this;
             var len = o.length;
             var rv = [];
             for (var i=0; i < len; i++) {
                 var x = o[i];
-                var args = (x instanceof Array) ? Ap.flatten.call(x, s) : [x];
+                var args = (x instanceof Array) ? A.flatten(x, s) : [x];
                 rv.push.apply(rv, args);
             }
             return rv;
         },
-        // TODO: match?
-
-        // TODO: move to separate class
-        // TODO: add toHash method
-        // associative array
-        assoc: function(key) {
-            return Ap.find.call(this, function(x){ return x[0]===key; });
-        },
-        rassoc: function(key) {
-            return Ap.findLast.call(this, function(x){ return x[0]===key; });
-        },
-        assocv: function(key){ return (Ap.assoc.call(this, key) || [])[1]; },
-        rassocv: function(key){ return (Ap.rassoc.call(this, key) || [])[1]; },
 
         // syntactic sugars
         zip: function(objs) {
-            return Ap.zmap.apply(this, [ null ].concat(toA(arguments)));
+            return A.zmap.apply(null, [ this, null ].concat(toA(arguments)));
         },
         compact: function() {
-            return Ap.filter.call(this, function(x){ return x!=null; });
+            return A.filter(this, function(x){ return x!=null; });
         },
-        member: function(obj){ return Ap.indexOf.call(this, obj) >= 0; },
+        member: function(obj){ return A.indexOf(this, obj) >= 0; },
         clone: function(){ return Array.apply(null, this); }
     };
 
-    // additional properties
+    // properties
     A.properties = {
         first: {
             get: function(){ return this[0]; },
@@ -289,43 +291,45 @@
             set: function(v){ this[this.length-1]=v; }
         }
     };
+    A.privateProperties = {
+        _isExtendedArray: { get: function(){return true;} }
+    };
 
-    // merge interfaces to the prototype
-    B.fmerge(function(a, b, k) {
-        if (!B.isDefined(Array.prototype[k])) return b;
-    }, A.prototype, A.interfaces);
+    // merge methods to the prototype
+    B.addInterface(A.prototype, A.methods, Array.prototype);
     B.addProperties(A.prototype, A.properties);
+    B.addProperties(A.prototype, A.privateProperties);
     B.setProto(A.prototype, Array.prototype);
 
     // translate return value
-    var newArrayMethods = [
+    A._preserveReturnValue = [
         'concat', 'slice',
         'map', 'filter',
         'zmap', 'flatten', 'zip', 'compact', 'clone',
     ];
     var installArrayWrapper = function(k) {
+        if (!k) return;
         var fun = Array.prototype[k] || A.prototype[k];
-        A.prototype[k] = function() {
+        B.addProperty(A.prototype, k, { get: function() { return function() {
             var r = fun.apply(this, arguments);
             if (r instanceof Array && !(r instanceof A) && r !== this) {
                 r = A.apply(null, r);
             }
             return r;
-        };
+        } } });
     };
-    for (var i=0; i < newArrayMethods.length; i++) {
-        if (!newArrayMethods[i]) break;
-        installArrayWrapper(newArrayMethods[i]);
+    for (var i=0; i < A._preserveReturnValue.length; i++) {
+        installArrayWrapper(A._preserveReturnValue[i]);
     }
 
     // enable A.method(arrayLike, ...) form
     B.fmerge(function(a, b, k) {
-        var fun = Array.prototype[k] || A.interfaces[k];
+        var fun = Array.prototype[k] || A.methods[k];
         return function(thisp, args) {
             args = toA(arguments); args.shift();
             return fun.apply(thisp, args);
         };
-    }, A, A.interfaces);
+    }, A, A.methods);
     B.fmerge(function(a, b, k) {
         return function(thisp, args) {
             args = toA(arguments); args.shift();
@@ -336,13 +340,72 @@
         };
     }, A, A.properties);
 
+    // class methods
+    A.isExtendedArray = function(arrayLike) {
+        return !!(arrayLike||{})._isExtendedArray;
+    };
     A.fromArray = function(arrayLike){ return A.apply(null, arrayLike); };
-
     A.extend = function(prototype) {
-        B.fmerge(function(a, b, k) {
-            if (!B.isDefined(a)) return b;
-        }, prototype, A.interfaces);
+        B.addInterface(prototype, A.methods);
         B.addProperties(prototype, A.properties);
+        B.addProperties(prototype, A.privateProperties);
+        return prototype;
+    };
+
+
+    ////////////////////////////////////
+    // associative array
+
+    var AA;
+    AA = T.AssocArray = A.Assoc = function() {
+        var self = arguments.length == 1 && (arguments[0] instanceof Number) ?
+                new A(arguments[0]) : A.fromArray(arguments);
+        return B.setProto(self, AA.prototype, function(obj, proto) {
+            B.addInterface(obj, AA.methods);
+            B.addProperties(obj, AA.privateProperties);
+        });
+    };
+
+    // methods
+    AA.methods = {
+        assoc: function(key) {
+            return A.find(this, function(x){ return x[0]===key; });
+        },
+        rassoc: function(key) {
+            return A.findLast(this, function(x){ return x[0]===key; });
+        },
+        assocv: function(key){ return (AA.assoc(this, key) || [])[1]; },
+        rassocv: function(key){ return (AA.rassoc(this, key) || [])[1]; },
+        toHash: function(){ /* TODO */ }
+    };
+
+    // properties
+    AA.privateProperties = {
+        _isAssocArray: { get: function(){return true;} }
+    };
+
+    // merge methods to the prototype
+    B.addInterface(AA.prototype, AA.methods);
+    B.addProperties(AA.prototype, AA.privateProperties);
+    B.setProto(AA.prototype, A.prototype);
+
+    // enable AA.method(arrayLike, ...) form
+    B.fmerge(function(a, b, k) {
+        var fun = AA.methods[k];
+        return function(thisp, args) {
+            args = toA(arguments); args.shift();
+            return fun.apply(thisp, args);
+        };
+    }, AA, AA.methods);
+
+    // class methods
+    AA.isAssocArray = function(arrayLike) {
+        return !!(arrayLike||{})._isAssocArray;
+    };
+    AA.fromArray = function(arrayLike){ return AA.apply(null, arrayLike); };
+    AA.extend = function(prototype) {
+        B.addInterface(prototype, AA.methods);
+        B.addProperties(prototype, AA.privateProperties);
         return prototype;
     };
 })(GNN, GNN.Base);

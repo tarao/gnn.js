@@ -1,7 +1,7 @@
-var Test = (function(B, A) {
+var Test = (function(B, A, AA) {
     var test = {
-        klass: A,
-        name: 'GNN.Array',
+        klass: Array,
+        name: 'Array',
         delim: '#',
         sig: function(m){ return this.name+this.delim+m; },
         instance: function(){ return this.klass.apply(null, arguments); },
@@ -28,11 +28,6 @@ var Test = (function(B, A) {
                     var ppargs = t.pp(d[1]).replace(/^\[(.*)\]$/, '($1)');
                     var ret = this.apply(self ,method, d[1]);
                     t.isDeeply(ret, d[2], ppself+'.'+method+ppargs);
-
-                    if (A.member(A._preserveReturnValue, method)) {
-                        t.ok(A.isExtendedArray(ret),
-                             m+' returns a '+this.name);
-                    }
                 }
             } catch (e) {
                 t.error(e, m);
@@ -42,23 +37,20 @@ var Test = (function(B, A) {
 
     var natives = [];
     Tester.run(function() {
-        for (var k in A.methods) natives.push(k);
+        for (var k in AA.methods) natives.push(k);
         natives = A.filter(natives, function(m){return !!Array.prototype[m];});
     });
 
+    AA.extend(Array.prototype);
+
     Tester.run(function(t) {
-        t.ok(A.isExtendedArray(new A()),
-             'a '+test.name+' is an exteded array');
-        t.ok(!A.isExtendedArray(new Array()),
-             'an Array is not an exteded array');
+        t.ok(AA.isAssocArray(new Array()),
+             'an Array is an associative array');
     });
 
     Tester.run(function(t) {
         var methods = [];
-        for (var k in A.methods) methods.push(k);
-        for (var i=0; i < A._preserveReturnValue.length; i++) {
-            methods.push(A._preserveReturnValue[i]);
-        }
+        for (var k in AA.methods) methods.push(k);
 
         var tmp = test.instance(1, 2, 3);
         var props = [];
@@ -69,11 +61,6 @@ var Test = (function(B, A) {
     });
 
     Tester.run(function(t) {
-        for (var i=0; i < A._preserveReturnValue.length; i++) {
-            var m1 = A._preserveReturnValue[i];
-            natives = A.filter(natives, function(m2){return m1!=m2;});
-        }
-
         var tmp = test.instance(1, 2, 3);
         t.ok(A.every(natives, function(m) {
             return tmp[m] == Array.prototype[m];
@@ -81,4 +68,4 @@ var Test = (function(B, A) {
     });
 
     return test;
-})(GNN.Base, GNN.Array);
+})(GNN.Base, GNN.Array, GNN.AssocArray);

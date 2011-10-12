@@ -1,4 +1,4 @@
-(function(B) {
+(function(B, A) {
     Tester.run(function(t) {
         t.is(Test.instance(1, 2, 3).first, 1, Test.sig('first'));
         t.is(Test.instance(1, 2, 3).last, 3, Test.sig('first'));
@@ -8,4 +8,5 @@
         t.is(tmp[0], 5, Test.sig('first')+' setter');
         t.is(tmp[2], 10, Test.sig('last')+' setter');
     });
-})(GNN.Base);
+
+})(GNN.Base, GNN.Array);

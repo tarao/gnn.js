@@ -133,7 +133,7 @@ if (typeof GNN == 'undefined') GNN = {};
                     try {
                         test(this);
                     } catch (e) {
-                        this.error(e+'');
+                        this.error(e);
                     }
                 },
                 finish: function() {
@@ -148,6 +148,12 @@ if (typeof GNN == 'undefined') GNN = {};
 
                 // assertions
                 error: function(msg, name) {
+                    msg = msg || '';
+                    if (typeof msg != 'string') {
+                        msg = [
+                            msg+'', msg.lineNumber, msg.fileName
+                        ].join(', ');
+                    }
                     this.log(false, { name: name, message: msg });
                 },
                 is: function(obj, expected, name) {
@@ -186,7 +192,7 @@ if (typeof GNN == 'undefined') GNN = {};
                     try {
                         fun();
                     } catch (e) {
-                        t.error(e+'', name);
+                        t.error(e, name);
                         return;
                     }
                     this.ok(true, name);

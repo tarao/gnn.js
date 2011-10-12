@@ -24,11 +24,27 @@ var runTests = function(result, frames) {
                  'test_array.js',
                  'test_array_property.js' ]
         },
-        { id: 'Array.prototype extension',
+        { id: 'GNN.Array Array.prototype extension',
           include: [ 'base.js', 'array.js' ],
           run: [ 'test_array_extension.js',
                  'test_array.js',
                  'test_array_property.js' ]
+        },
+        { id: 'GNN.AssocArray.method',
+          include: [ 'base.js', 'array.js' ],
+          run: [ 'test_assocarray_class.js',
+                 'test_assocarray.js' ]
+        },
+        { id: 'GNN.AssocArray#method',
+          include: [ 'base.js', 'array.js' ],
+          run: [ 'test_assocarray_instance.js',
+                 'test_assocarray.js',
+                 'test_array.js' ]
+        },
+        { id: 'GNN.AssocArray Array.prototype extension',
+          include: [ 'base.js', 'array.js' ],
+          run: [ 'test_assocarray_extension.js',
+                 'test_assocarray.js' ]
         },
     ];
 
@@ -98,14 +114,20 @@ var runTests = function(result, frames) {
 
             var li = document.createElement('li');
             var logMsg = 'Running test suite "' + t.id + '"';
-            logMsg = [ logMsg, '[' + src.join(', ') + ']...' ].join(' ');
-            li.appendChild(document.createTextNode(logMsg));
+            var div1 = document.createElement('div');
+            div1.className = 'message';
+            div1.appendChild(document.createTextNode(logMsg));
+            li.appendChild(div1);
+            var div2 = document.createElement('div');
+            div2.className = 'files';
+            div2.appendChild(document.createTextNode('['+src.join(', ')+']'));
+            li.appendChild(div2);
             log.parent.appendChild(li);
             log[t.id] = { li: li, msg: logMsg };
         },
         progress: function(t, passed, detail) {
             var o = passed ? '.' : '!';
-            log[t.id].li.appendChild(document.createTextNode(o));
+            log[t.id].li.firstChild.appendChild(document.createTextNode(o));
 
             detail.passed = passed;
             if (!details[t.id]) details[t.id] = [];
@@ -113,16 +135,15 @@ var runTests = function(result, frames) {
         },
         end: function(t, summary) {
             var li = log[t.id].li;
-            while (li.firstChild) li.removeChild(li.firstChild);
-            var msg = log[t.id].msg + 'done';
-            li.appendChild(document.createTextNode(msg));
+            var div = li.firstChild;
+            while (div.firstChild) div.removeChild(div.firstChild);
+            var msg = log[t.id].msg + '...done';
+            div.appendChild(document.createTextNode(msg));
             summary.name = t.id;
             summary.score = summary.passed + '/' + summary.total;
 
-
             var tr1 = document.createElement('tr');
             var tr2 = document.createElement('tr');
-
 
             var props = [ 'name', 'score' ];
             for (var i=0; i < props.length; i++) {

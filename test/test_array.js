@@ -1,4 +1,4 @@
-(function(B) {
+(function(B, A) {
     Tester.run(function(t) {
         var undef;
         var undef1;
@@ -61,7 +61,7 @@
             t.isDeeply(tmp, [ 0, 0, 0, 0, 0, 0 ],
                        Test.sig('filter')+' side effect');
         } catch (e) {
-            t.error(e+'', Test.sig('filter')+' side effect');
+            t.error(e, Test.sig('filter')+' side effect');
         }
         t.isThrown(function() {
             Test.call(Test.instance(1, 2, 3), 'filter', {});
@@ -87,7 +87,7 @@
             t.isDeeply(tmp, [ 0, 0, 0, 0, 0, 0 ],
                        Test.sig('forEach')+' side effect (2)');
         } catch (e) {
-            t.error(e+'', Test.sig('forEach')+' side effect (2)');
+            t.error(e, Test.sig('forEach')+' side effect (2)');
         }
         t.is(forEachR.c, 91, Test.sig('forEach')+' side effect with this');
         t.isThrown(function() {
@@ -111,7 +111,7 @@
             t.isDeeply(tmp, [ 0, 0, 0, 4, 5, 6 ],
                        Test.sig('every')+' side effect');
         } catch (e) {
-            t.error(e+'', Test.sig('every')+' side effect');
+            t.error(e, Test.sig('every')+' side effect');
         }
         t.isThrown(function() {
             Test.call(Test.instance(1, 2, 3, 4), 'every', {});
@@ -130,7 +130,7 @@
             t.isDeeply(tmp, [ 0, 0, 0, 0, 0, 0 ],
                        Test.sig('map')+' side effect');
         } catch (e) {
-            t.error(e+'', Test.sig('map')+' side effect');
+            t.error(e, Test.sig('map')+' side effect');
         }
         t.isThrown(function() {
             Test.call(Test.instance(1, 2, 3, 4), 'map', {});
@@ -151,7 +151,7 @@
             t.isDeeply(tmp, [ 0, 0, 3, 4, 5, 6 ],
                        Test.sig('some')+' side effect');
         } catch (e) {
-            t.error(e+'', Test.sig('some')+' side effect');
+            t.error(e, Test.sig('some')+' side effect');
         }
         t.isThrown(function() {
             Test.call(Test.instance(1, 2, 3, 4), 'some', {});
@@ -212,20 +212,102 @@
                 t.is(this, tmp, Test.sig('tap')+' identity (3)');
             });
         } catch (e) {
-            t.error(e+'', Test.sig('tap')+' identity');
+            t.error(e, Test.sig('tap')+' identity');
         }
         t.isThrown(function() {
             Test.call(Test.instance(1, 2, 3, 4), 'tap', {});
         }, TypeError, Test.sig('tap')+' throws');
 
         // zmap
+        Test.testMethod('zmap', [
+            [ [ 1, 2 ], [ function(x, y, z){return x*y*z}, [3,4], [5,6] ],
+              [ 15, 48 ] ],
+            [ [ 1, 2 ], [ null, [3,4], [5,6] ],
+              [ [ 1, 3, 5 ], [ 2, 4, 6 ] ] ],
+            [ [ 1, 2 ], [ function(x, y, z){return x||y||z}, [3,4,7], [5,6] ],
+              [ 1, 2, 7 ] ],
+        ]);
+
         // find
+        Test.testMethod('find', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0} ],
+              2 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0} ],
+              undef ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0}, 10 ],
+              10 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 3 ],
+        ]);
+
         // findLast
+        Test.testMethod('findLast', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0} ],
+              6 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0} ],
+              undef ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0}, 10 ],
+              10 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 3 ],
+        ]);
+
         // groupBy
+        Test.testMethod('groupBy', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%3} ],
+              { 0: [ 3, 6], 1: [1, 4], 2: [2, 5] } ],
+        ]);
+        t.isThrown(function() {
+            Test.call(Test.instance(1, 2, 3, 4), 'groupBy', {});
+        }, TypeError, Test.sig('groupBy')+' throws');
+
         // flatten
+        Test.testMethod('flatten', [
+            [ [ [ 1, 2 ], [ 3, 4 ], [ 5, 6 ] ], [],
+              [ 1, 2, 3, 4, 5, 6 ] ],
+            [ [ [ 1, [ 2 ] ], [ 3, [ 4, [ 5, 6 ] ] ] ], [],
+              [ 1, 2, 3, 4, 5, 6 ] ],
+        ]);
+        t.isThrown(function() {
+            var tmp = Test.instance(1, 2, 3, 4);
+            tmp[1] = tmp;
+            Test.call(tmp, 'flatten');
+        }, A.ArgumentError, Test.sig('flatten')+' throws');
+
         // zip
+        Test.testMethod('zip', [
+            [ [ 1, 2 ], [ [3,4], [5,6] ],
+              [ [ 1, 3, 5 ], [ 2, 4, 6 ] ] ],
+            [ [ 1, 2 ], [ [3,4,7], [5,6] ],
+              [ [ 1, 3, 5 ], [ 2, 4, 6 ], [ undef, 7, undef ] ] ],
+        ]);
+
         // compact
+        Test.testMethod('compact', [
+            [ [ 1, undef, 2, 3, 4, null, 5 ], [],
+              [ 1, 2, 3, 4, 5 ] ],
+        ]);
+
         // member
+        Test.testMethod('member', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 2 ],
+              true ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 10 ],
+              false ],
+        ]);
+
         // clone
+        Test.testMethod('clone', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [],
+              [ 1, 2, 3, 4, 5, 6 ] ],
+        ]);
+        try {
+            var tmp = Test.instance(1, [ 2, 3 ], 4);
+            var clone = Test.call(tmp, 'clone');
+            t.ok(clone != tmp,
+                 Test.sig('clone')+' returns new object');
+            clone[1][0] = 5;
+            t.is(clone[1][0], tmp[1][0], Test.sig('clone')+' is shallow copy');
+        } catch (e) {
+            t.error(e, Test.sig('clone'));
+        }
     });
 })(GNN.Base, GNN.Array);

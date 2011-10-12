@@ -1,7 +1,8 @@
-var Test = (function(B, A) {
+var Test = (function(B, A, AA) {
     var test = {
-        klass: A,
-        name: 'GNN.Array',
+        klass: AA,
+        parent: 'GNN.Array',
+        name: 'GNN.AssocArray',
         delim: '.',
         sig: function(m){ return this.name+this.delim+m; },
         instance: function(){ return Array.prototype.slice.call(arguments); },
@@ -26,11 +27,6 @@ var Test = (function(B, A) {
                     ppargs = ppargs.replace(/^\[(.*)\]$/, '($1)');
                     var ret = this.apply(self ,method, d[1]);
                     t.isDeeply(ret, d[2], this.name+'.'+method+ppargs);
-
-                    if (A.member(A._preserveReturnValue, method)) {
-                        t.ok(!A.isExtendedArray(ret) && ret instanceof Array,
-                             m+' does not return a '+this.name + ' but Array');
-                    }
                 }
             } catch (e) {
                 t.error(e, m);
@@ -39,11 +35,15 @@ var Test = (function(B, A) {
     };
 
     Tester.run(function(t) {
-        t.ok(A.isExtendedArray(new A()),
+        t.ok(AA.isAssocArray(new AA()),
+             'a '+test.name+' is an associative array');
+        t.ok(A.isExtendedArray(new AA()),
              'a '+test.name+' is an exteded array');
-        t.ok(!A.isExtendedArray(new Array()),
-             'an Array is not an exteded array');
+        t.ok(!AA.isAssocArray(new A()),
+             'a '+test.parent+' is not an associative array');
+        t.ok(!AA.isAssocArray(new Array()),
+             'an Array is not an associative array');
     });
 
     return test;
-})(GNN.Base, GNN.Array);
+})(GNN.Base, GNN.Array, GNN.AssocArray);

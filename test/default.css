@@ -100,12 +100,12 @@ p
    background-color: transparent;
 }
 
-p.epigraph
+ul#log li div.message
 {
-   margin: 1em;
-   text-indent: 0;
-   background-color: transparent;
-   line-height: 3.0;
+}
+ul#log li div.files
+{
+   color: #669999;
 }
 
 table.summary
