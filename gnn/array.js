@@ -23,6 +23,12 @@
     };
     A.ArgumentError.prototype = new Error();
     A.ArgumentError.prototype.constructor = A.ArgumentError;
+    A.IndexError = function(msg) {
+        this.name = 'IndexError';
+        this.message = msg || '';
+    };
+    A.IndexError.prototype = new Error();
+    A.IndexError.prototype.constructor = A.IndexError;
 
     // methods
     A.methods = {
@@ -270,6 +276,21 @@
         },
 
         // syntactic sugars
+        at: function(i){ return this[i]; },
+        fetch: function(i, ifnone) {
+            if (i in this) {
+                return this[i];
+            } else if (arguments.length >= 2) {
+                return ifnone;
+            } else {
+                var msg = 'fetch: index '+i+'out of range';
+                throw new A.IndexError(msg);
+            }
+        },
+        store: function(i, val) {
+            this[i] = val;
+            return this;
+        },
         zip: function(objs) {
             return A.zmap.apply(null, [ this, null ].concat(toA(arguments)));
         },

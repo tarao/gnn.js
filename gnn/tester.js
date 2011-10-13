@@ -188,7 +188,7 @@ if (typeof GNN == 'undefined') GNN = {};
                     }
                     this.isa(e, exc, name);
                 },
-                nothrow: function(fun, name) {
+                noThrow: function(fun, name) {
                     try {
                         fun();
                     } catch (e) {

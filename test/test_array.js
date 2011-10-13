@@ -272,6 +272,46 @@
             Test.call(tmp, 'flatten');
         }, A.ArgumentError, Test.sig('flatten')+' throws');
 
+        // at
+        Test.testMethod('at', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 4 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 8 ], undef ],
+        ]);
+
+        // fetch
+        Test.testMethod('fetch', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 4 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3, undef ], 4 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3, null ], 4 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3, 5 ], 4 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 8, undef ], undef1 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 8, null ], null ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 8, 5 ], 5 ],
+        ]);
+        t.isThrown(function() {
+            Test.call(Test.instance(1, 2, 3, 4, 5, 6), 'fetch', 6);
+        }, A.IndexError, Test.sig('fetch')+' throws');
+        t.noThrow(function() {
+            Test.call(Test.instance(1, 2, 3, 4, 5, 6, undef, 8), 'fetch', 6);
+            Test.call(Test.instance(1, 2, 3, 4, 5, 6, undef), 'fetch', 6);
+        }, Test.sig('fetch')+' does not throw for empty element');
+
+        // store
+        Test.testMethod('store', [
+            [ [ 1, 2, 3, 4 ], [ 2, 5 ], [ 1, 2, 5, 4 ] ],
+            [ [ 1, 2, 3, 4 ], [ 2 ], [ 1, 2, undef, 4 ] ],
+            [ [ 1, 2, 3, 4 ], [ 5, 1 ], [ 1, 2, 3, 4, undef, 1, ] ],
+        ]);
+        try {
+            var tmp = Test.instance(1, 2, 3, 4);
+            t.is(Test.call(tmp, 'store', 2, 6), tmp,
+                 Test.sig('store')+' mutates this (1)');
+            t.isDeeply(tmp, [ 1, 2, 6, 4 ],
+                 Test.sig('store')+' mutates this (2)');
+        } catch (e) {
+            t.error(e, Test.sig('store')+' mutates this');
+        }
+
         // zip
         Test.testMethod('zip', [
             [ [ 1, 2 ], [ [3,4], [5,6] ],
