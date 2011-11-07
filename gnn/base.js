@@ -1,9 +1,12 @@
-if (typeof GNN == 'undefined') GNN = {};
-if (typeof GNN.Base == 'undefined') GNN.Base = {};
+[ 'GNN' , function(global) {
+    var ns = this.pop();
+    global[ns] = { Base: {} };
 
-(function(T /* top level */, B /* Base */) {
+    var T = global[ns];
+    var B = T.Base;
+
     B.noop = function(){};
-    B.global = function(){ return (function(){ return this; }).call(null); };
+    B.global = global;
 
     ////////////////////////////////////
     // objects
@@ -93,4 +96,4 @@ if (typeof GNN.Base == 'undefined') GNN.Base = {};
             }
         }, null, intrfce);
     };
-})(GNN, GNN.Base);
+} ].reverse()[0](this);

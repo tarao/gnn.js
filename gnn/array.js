@@ -1,4 +1,8 @@
-(function(T /* top level */, B /* Base */) {
+[ 'GNN', function(global) {
+    var ns = this.pop();
+    var T = global[ns];
+    var B = T.Base;
+
     ////////////////////////////////////
     // extended array
 
@@ -373,7 +377,6 @@
         return prototype;
     };
 
-
     ////////////////////////////////////
     // associative array
 
@@ -429,4 +432,4 @@
         B.addProperties(prototype, AA.privateProperties);
         return prototype;
     };
-})(GNN, GNN.Base);
+} ].reverse()[0](this);

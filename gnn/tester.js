@@ -1,7 +1,9 @@
-if (typeof GNN == 'undefined') GNN = {};
+[ 'GNN', function(global) {
+    var ns = this.pop();
+    if (typeof global[ns] == 'undefined') global[ns] = {};
+    var T = global[ns];
 
-(function(ns) {
-    ns.DeepCheck = (function() {
+    T.DeepCheck = (function() {
         var isa = function(obj, klass) {
             if (typeof klass == 'string') {
                 var c = Object.prototype.toString.call(obj);
@@ -114,7 +116,7 @@ if (typeof GNN == 'undefined') GNN = {};
         };
     })();
 
-    ns.Tester = function(prefix, tests, parent, callbacks) {
+    T.Tester = function(prefix, tests, parent, callbacks) {
         var current = 0;
         callbacks = callbacks||{};
         callbacks.begin = callbacks.begin || function(){};
@@ -167,7 +169,7 @@ if (typeof GNN == 'undefined') GNN = {};
                     this.is(!!cond, true, name);
                 },
                 isDeeply: function(obj, expected, name) {
-                    this.log(ns.DeepCheck.eq(obj, expected), {
+                    this.log(T.DeepCheck.eq(obj, expected), {
                         name: name,
                         returned: obj,
                         expected: expected
@@ -206,7 +208,7 @@ if (typeof GNN == 'undefined') GNN = {};
                 },
 
                 // utility
-                pp: function(val){ return ns.DeepCheck.pp(val); }
+                pp: function(val){ return T.DeepCheck.pp(val); }
             };
         };
 
@@ -307,4 +309,4 @@ if (typeof GNN == 'undefined') GNN = {};
         self.next();
         return self;
     };
-})(GNN);
+} ].reverse()[0](this);
