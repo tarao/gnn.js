@@ -12,6 +12,16 @@ var runTests = function(result, frames) {
           include: 'base.js',
           run: 'test_base.js'
         },
+        { id: 'GNN.Hash.method',
+          include: [ 'base.js', 'hash.js' ],
+          run: [ 'test_hash_class.js',
+                 'test_hash.js' ]
+        },
+        { id: 'GNN.Hash#method',
+          include: [ 'base.js', 'hash.js' ],
+          run: [ 'test_hash_instance.js',
+                 'test_hash.js' ]
+        },
         { id: 'GNN.Array.method',
           include: [ 'base.js', 'array.js' ],
           run: [ 'test_array_class.js',
@@ -45,6 +55,10 @@ var runTests = function(result, frames) {
           include: [ 'base.js', 'array.js' ],
           run: [ 'test_assocarray_extension.js',
                  'test_assocarray.js' ]
+        },
+        { id: 'GNN.Hash and GNN.Array conversion',
+          include: [ 'base.js', 'hash.js', 'array.js' ],
+          run: [ 'test_hash_array.js' ]
         },
     ];
 

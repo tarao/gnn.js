@@ -1,7 +1,7 @@
-var Test = (function(B, A) {
+var Test = (function(B, H) {
     var test = {
-        klass: A,
-        name: 'GNN.Array',
+        klass: H,
+        name: 'GNN.Hash',
         delim: '#',
         sig: function(m){ return this.name+this.delim+m; },
         instance: function(){ return this.klass.apply(null, arguments); },
@@ -17,12 +17,12 @@ var Test = (function(B, A) {
             var t = Tester;
             var m = this.sig(method);
             try {
-                t.ok(B.isCallable(this.klass(1, 2, 3)[method]),
+                t.ok(B.isCallable(this.klass({ a: 1, b: 2})[method]),
                      m+' is defined');
                 for (var i=0; i < defs.length; i++) {
                     if (!defs[i]) break;
                     var d = defs[i];
-                    var self = this.instance.apply(this, d[0]||[1,2,3]);
+                    var self = this.instance(d[0]);
                     var ppself = t.pp(self);
                     ppself = ppself.replace(/^\[(.*)\]$/, this.name+'($1)');
                     var ppargs = t.pp(d[1]).replace(/^\[(.*)\]$/, '($1)');
@@ -37,11 +37,11 @@ var Test = (function(B, A) {
                         t.isDeeply(ret, d[2], ppself+'.'+method+ppargs);
                     }
 
-                    if (A._preserveReturnValue.indexOf(method) >= 0) {
-                        // we can't do (ret instanceof A) here
+                    if (H._preserveReturnValue.indexOf(method) >= 0) {
+                        // we can't do (ret instanceof H) here
                         // because ret is extended by copying methods
-                        // to a new instace of ordinary Array (in IE)
-                        t.ok(A.isExtendedArray(ret),
+                        // to a new instace of ordinary Object (in IE)
+                        t.ok(H.isHash(ret),
                              m+' returns a '+this.name);
                     }
                 }
@@ -51,45 +51,34 @@ var Test = (function(B, A) {
         }
     };
 
-    var natives = [];
-    Tester.run(function() {
-        for (var k in A.methods) natives.push(k);
-        natives = A.filter(natives, function(m){return !!Array.prototype[m];});
-    });
-
     Tester.run(function(t) {
-        t.ok(A.isExtendedArray(new A()),
-             'a '+test.name+' is an exteded array');
-        t.ok(!A.isExtendedArray(new Array()) && !(new Array() instanceof A),
-             'an Array is not an exteded array');
+        t.ok(H.isHash(new H()) && new H() instanceof H,
+             'a '+test.name+' is a Hash');
+        t.ok(!H.isHash(new Object()) && !(new Object() instanceof H),
+             'an Object is not a Hash');
     });
 
     Tester.run(function(t) {
         var methods = [];
-        for (var k in A.methods) methods.push(k);
-        for (var i=0; i < A._preserveReturnValue.length; i++) {
-            methods.push(A._preserveReturnValue[i]);
-        }
+        for (var k in H.methods) methods.push(k);
 
-        var tmp = test.instance(1, 2, 3);
+        var tmp = test.instance({ a:1, b:2, c:3 });
         var props = [];
         for (var k in tmp) props.push(k);
 
-        t.ok(A.every(props, function(p){ return !A.member(methods, p); }),
-             'methods are not enumerable');
+        var b = true;
+        for (var i=0; i < props.length; i++) {
+            b = b && methods.indexOf(props[i]) < 0;
+        }
+        t.ok(b, 'methods are not enumerable');
     });
 
     Tester.run(function(t) {
-        for (var i=0; i < A._preserveReturnValue.length; i++) {
-            var m1 = A._preserveReturnValue[i];
-            natives = A.filter(natives, function(m2){return m1!=m2;});
-        }
-
-        var tmp = test.instance(1, 2, 3);
-        t.ok(A.every(natives, function(m) {
-            return tmp[m] == Array.prototype[m];
-        }), 'native methods are not overridden ['+natives.join(', ')+']');
+        t.isDeeply(new H('a', 1, 'b', 2, 'c', 3), { a:1, b:2, c:3 },
+                   'construct from arguments');
+        t.isDeeply(new H([ 'a', 1, 'b', 2, 'c', 3 ]), { a:1, b:2, c:3 },
+                   'construct from an Array');
     });
 
     return test;
-})(GNN.Base, GNN.Array);
+})(GNN.Base, GNN.Hash);

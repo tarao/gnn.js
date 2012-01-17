@@ -1,10 +1,10 @@
-var Test = (function(B, A) {
+var Test = (function(B, H) {
     var test = {
-        klass: A,
-        name: 'GNN.Array',
+        klass: H,
+        name: 'GNN.Hash',
         delim: '.',
         sig: function(m){ return this.name+this.delim+m; },
-        instance: function(){ return Array.prototype.slice.call(arguments); },
+        instance: function(obj){ return obj; },
         call: function(self, m, args) {
             args = Array.prototype.slice.call(arguments);
             args = args.slice(2);
@@ -21,7 +21,7 @@ var Test = (function(B, A) {
                 for (var i=0; i < defs.length; i++) {
                     if (!defs[i]) break;
                     var d = defs[i];
-                    var self = this.instance.apply(this, d[0]||[1,2,3]);
+                    var self = this.instance(d[0]);
                     var ppargs = t.pp([self].concat(d[1]));
                     ppargs = ppargs.replace(/^\[(.*)\]$/, '($1)');
                     var ret = this.apply(self, method, d[1]);
@@ -35,9 +35,9 @@ var Test = (function(B, A) {
                         t.isDeeply(ret, d[2], this.name+'.'+method+ppargs);
                     }
 
-                    if (A._preserveReturnValue.indexOf(method) >= 0) {
-                        t.ok(!A.isExtendedArray(ret) && !(ret instanceof A),
-                             m+' does not return a '+this.name+' but Array');
+                    if (H._preserveReturnValue.indexOf(method) >= 0) {
+                        t.ok(!H.isHash(ret) && ret instanceof Object,
+                             m+' does not return a '+this.name+' but Object');
                     }
                 }
             } catch (e) {
@@ -47,11 +47,19 @@ var Test = (function(B, A) {
     };
 
     Tester.run(function(t) {
-        t.ok(A.isExtendedArray(new A()),
-             'a '+test.name+' is an exteded array');
-        t.ok(!A.isExtendedArray(new Array()) && !(new Array() instanceof A),
-             'an Array is not an exteded array');
+        t.ok(H.isHash(new H()) && new H() instanceof H,
+             'a '+test.name+' is a Hash');
+        t.ok(!H.isHash(new Object()) && !(new Object instanceof H),
+             'an Object is not a Hash');
+    });
+
+
+    Tester.run(function(t) {
+        t.isDeeply(H('a', 1, 'b', 2, 'c', 3), { a:1, b:2, c:3 },
+                   'construct from arguments');
+        t.isDeeply(H([ 'a', 1, 'b', 2, 'c', 3 ]), { a:1, b:2, c:3 },
+                   'construct from an Array');
     });
 
     return test;
-})(GNN.Base, GNN.Array);
+})(GNN.Base, GNN.Hash);

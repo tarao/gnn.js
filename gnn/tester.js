@@ -112,6 +112,49 @@
                     if (!this.eq(lhs[k], rhs[k], seen)) return false;
                 }
                 return true;
+            },
+            contain: function(lhs, rhs, seen) {
+                if ((typeof obj) != (typeof expected)) return false;
+                if (lhs == null && rhs == null) return true;
+                if (lhs == null || rhs == null) return false;
+
+                if (lhs == rhs) {
+                    return true;
+                } else if (isArray(rhs)) {
+                    return this.containArray(lhs, rhs, seen || []);
+                } else if (typeof rhs == 'object') {
+                    return this.containHash(lhs, rhs, seen || []);
+                }
+
+                return false;
+            },
+            containArray: function(lhs, rhs, seen) {
+                if (lhs == rhs) return true;
+
+                seen = (seen || []).slice(0); // dup
+                for (var i=0; i < seen.length; i++) {
+                    if (seen[i][0] == lhs) return seen[i][1] == rhs;
+                }
+                seen.push([ lhs, rhs ]);
+
+                for (var i=0; i < rhs.length; i++) {
+                    if (!this.contain(lhs[i], rhs[i], seen)) return false;
+                }
+                return true;
+            },
+            containHash: function(lhs, rhs, seen) {
+                if (lhs == rhs) return true;
+
+                seen = (seen || []).slice(0); // dup
+                for (var i=0; i < seen.length; i++) {
+                    if (seen[i][0] == lhs) return seen[i][1] == rhs;
+                }
+                seen.push([ lhs, rhs ]);
+
+                for (var k in rhs) {
+                    if (!this.contain(lhs[k], rhs[k], seen)) return false;
+                }
+                return true;
             }
         };
     })();
@@ -170,6 +213,13 @@
                 },
                 isDeeply: function(obj, expected, name) {
                     this.log(T.DeepCheck.eq(obj, expected), {
+                        name: name,
+                        returned: obj,
+                        expected: expected
+                    });
+                },
+                isAtLeast: function(obj, expected, name) {
+                    this.log(T.DeepCheck.contain(obj, expected), {
                         name: name,
                         returned: obj,
                         expected: expected

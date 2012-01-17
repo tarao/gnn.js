@@ -3,12 +3,13 @@
     var T = global[ns];
     var B = T.Base;
 
+    var toA = function(a){ return Array.prototype.slice.call(a); };
+
     ////////////////////////////////////
     // extended array
 
     var A;
-    var toA = function(a){ return Array.prototype.slice.call(a); };
-    A = T.Array = function() {
+    A = T.Array = function Array() {
         var self = arguments.length == 1 && (arguments[0] instanceof Number) ?
                 new Array(arguments[0]) : toA(arguments);
         return B.setProto(self, A.prototype, function(obj, proto) {
@@ -302,6 +303,7 @@
             return A.filter(this, function(x){ return x!=null; });
         },
         member: function(obj){ return A.indexOf(this, obj) >= 0; },
+        isEmpty: function(){ return this.length == 0; },
         clone: function(){ return Array.apply(null, this); }
     };
 
@@ -317,7 +319,7 @@
         }
     };
     A.privateProperties = {
-        _isExtendedArray: { get: function(){return true;} }
+        _isExtendedArray: { get: function(){return A;} }
     };
 
     // merge methods to the prototype
@@ -367,7 +369,7 @@
 
     // class methods
     A.isExtendedArray = function(arrayLike) {
-        return !!(arrayLike||{})._isExtendedArray;
+        return (arrayLike||{})._isExtendedArray == A;
     };
     A.fromArray = function(arrayLike){ return A.apply(null, arrayLike); };
     A.extend = function(prototype) {

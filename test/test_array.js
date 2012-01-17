@@ -96,13 +96,13 @@
 
         // every
         Test.testMethod('every', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
               false ],
-            [ [ 2, 4, 6 ], [ function(x){return x%2==0} ],
+            [ [ 2, 4, 6 ], [ function(x){return x%2==0;} ],
               true ],
-            [ [ 6, 5, 4, 3, 2, 1 ], [ function(x,i){return (x+i)%2==0} ],
+            [ [ 6, 5, 4, 3, 2, 1 ], [ function(x,i){return (x+i)%2==0;} ],
               true ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x,i,t){t[i]=0;return x%2==0} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x,i,t){t[i]=0;return x%2==0;} ],
               false ],
         ]);
         try {
@@ -119,7 +119,7 @@
 
         // map
         Test.testMethod('map', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x*x} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x*x;} ],
               [ 1, 4, 9, 16, 25, 36 ] ],
             [ [ 1, 2, 3, 4, 5, 6 ], [ function(x,i,t){t[i]=0;return x*i;} ],
               [ 0, 2, 6, 12, 20, 30 ] ],
@@ -138,9 +138,9 @@
 
         // some
         Test.testMethod('some', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
               true ],
-            [ [ 1, 3, 5 ], [ function(x){return x%2==0} ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;} ],
               false ],
             [ [ 1, 2, 3, 4, 5, 6 ], [ function(x,i,t){t[i]=0;return x%2==0;} ],
               true ],
@@ -159,15 +159,15 @@
 
         // reduce
         Test.testMethod('reduce', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x}, 0 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x;}, 0 ],
               21 ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x}, 0 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x;}, 0 ],
               -21 ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x;} ],
               21 ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x;} ],
               -19 ],
-            [ [ 1, 2, 3 ], [ function(r, x){return r.concat([x])}, [] ],
+            [ [ 1, 2, 3 ], [ function(r, x){return r.concat([x]);}, [] ],
               [ 1, 2, 3 ] ],
         ]);
         t.isThrown(function() {
@@ -179,15 +179,15 @@
 
         // reduceRight
         Test.testMethod('reduceRight', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x}, 0 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x;}, 0 ],
               21 ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x}, 0 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x;}, 0 ],
               -21 ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r+x;} ],
               21 ],
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(r, x){return r-x;} ],
               -9 ],
-            [ [ 1, 2, 3 ], [ function(r, x){return r.concat([x])}, [] ],
+            [ [ 1, 2, 3 ], [ function(r, x){return r.concat([x]);}, [] ],
               [ 3, 2, 1 ] ],
         ]);
         t.isThrown(function() {
@@ -230,29 +230,29 @@
 
         // find
         Test.testMethod('find', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
               2 ],
-            [ [ 1, 3, 5 ], [ function(x){return x%2==0} ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;} ],
               undef ],
-            [ [ 1, 3, 5 ], [ function(x){return x%2==0}, 10 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;}, 10 ],
               10 ],
             [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 3 ],
         ]);
 
         // findLast
         Test.testMethod('findLast', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
               6 ],
-            [ [ 1, 3, 5 ], [ function(x){return x%2==0} ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;} ],
               undef ],
-            [ [ 1, 3, 5 ], [ function(x){return x%2==0}, 10 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;}, 10 ],
               10 ],
             [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 3 ],
         ]);
 
         // groupBy
         Test.testMethod('groupBy', [
-            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%3} ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%3;} ],
               { 0: [ 3, 6], 1: [1, 4], 2: [2, 5] } ],
         ]);
         t.isThrown(function() {
@@ -332,6 +332,14 @@
               true ],
             [ [ 1, 2, 3, 4, 5, 6 ], [ 10 ],
               false ],
+        ]);
+
+        // isEmpty
+        Test.testMethod('isEmpty', [
+            [ [], [], true ],
+            [ [ 1, 2 ], [], false ],
+            [ [ null ], [], false ],
+            [ [ undef ], [], false ],
         ]);
 
         // clone
