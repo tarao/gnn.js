@@ -107,8 +107,12 @@ var runTests = function(result, frames) {
                     var th = document.createElement('th');
                     th.appendChild(document.createTextNode(labels[j]));
                     var td = document.createElement('td');
-                    var val = GNN.DeepCheck.pp(d[labels[j]]);
-                    td.appendChild(document.createTextNode(val));
+                    var val = GNN.Base.pp(d[labels[j]], {
+                        object:{name:1},cyclic:{detail:1}
+                    });
+                    var pre = document.createElement('pre');
+                    pre.appendChild(document.createTextNode(val));
+                    td.appendChild(pre);
                     tr.appendChild(th);
                     tr.appendChild(td);
                     table.appendChild(tr);

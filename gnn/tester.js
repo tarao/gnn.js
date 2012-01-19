@@ -2,162 +2,7 @@
     var ns = this.pop();
     if (typeof global[ns] == 'undefined') global[ns] = {};
     var T = global[ns];
-
-    T.DeepCheck = (function() {
-        var isa = function(obj, klass) {
-            if (typeof klass == 'string') {
-                var c = Object.prototype.toString.call(obj);
-                c = c.substring('[object '.length, c.length-1);
-                return c == klass;
-            }
-            if (obj instanceof klass) return true;
-        };
-        var isArray = function(obj){ return isa(obj, 'Array'); };
-        return {
-            pp: function(obj, hideFunBody, seen) {
-                if (typeof obj == 'undefined') return 'undefined';
-                if (obj === null) return 'null';
-
-                if (typeof obj == 'object') {
-                    seen = seen || [];
-                    if (isArray(obj)) {
-                        return this.ppArray(obj, hideFunBody, seen);
-                    } else {
-                        return this.ppHash(obj, hideFunBody, seen);
-                    }
-                } else if (typeof obj == 'function') {
-                    var str = obj+'';
-                    str = str.replace(/^\s+/, '').replace(/\s+/g, ' ');
-                    var i = str.indexOf('{');
-                    if (i >= 0 && hideFunBody) {
-                        str = str.substr(0, idx) + '{...}';
-                    }
-                    return str;
-                } else {
-                    return obj+'';
-                }
-            },
-            ppArray: function(obj, flag, seen) {
-                seen = (seen || []).slice(0); // dup
-                for (var i=0; i < seen.length; i++) {
-                    if (seen[i] == obj) return '[...]';
-                }
-                seen.push(obj);
-
-                var arr = [];
-                for (var i=0; i < obj.length; i++) {
-                    arr.push(this.pp(obj[i], flag, seen));
-                }
-                return '['+arr.join(', ')+']';
-            },
-            ppHash: function(obj, flag, seen) {
-                seen = (seen || []).slice(0); // dup
-                for (var i=0; i < seen.length; i++) {
-                    if (seen[i] == obj) return '{...}';
-                }
-                seen.push(obj);
-
-                var arr = [];
-                for (var k in obj) {
-                    arr.push(k + ': ' + this.pp(obj[k], flag, seen));
-                }
-                return '{'+arr.join(', ')+'}';
-            },
-            eq: function(lhs, rhs, seen) {
-                if ((typeof obj) != (typeof expected)) return false;
-                if (lhs == null && rhs == null) return true;
-                if (lhs == null || rhs == null) return false;
-
-                if (lhs == rhs) {
-                    return true;
-                } else if (isArray(lhs) && isArray(rhs)) {
-                    return this.eqArray(lhs, rhs, seen || []);
-                } else if (isArray(lhs) || isArray(rhs)) {
-                    return false;
-                } else if (typeof lhs == 'object') {
-                    return this.eqHash(lhs, rhs, seen || []);
-                }
-
-                return false;
-            },
-            eqArray: function(lhs, rhs, seen) {
-                if (lhs == rhs) return true;
-
-                seen = (seen || []).slice(0); // dup
-                for (var i=0; i < seen.length; i++) {
-                    if (seen[i][0] == lhs) return seen[i][1] == rhs;
-                }
-                seen.push([ lhs, rhs ]);
-
-                if (lhs.length != rhs.length) return false;
-                for (var i=0; i < lhs.length; i++) {
-                    if (!this.eq(lhs[i], rhs[i], seen)) return false;
-                }
-                return true;
-            },
-            eqHash: function(lhs, rhs, seen) {
-                if (lhs == rhs) return true;
-
-                seen = (seen || []).slice(0); // dup
-                for (var i=0; i < seen.length; i++) {
-                    if (seen[i][0] == lhs) return seen[i][1] == rhs;
-                }
-                seen.push([ lhs, rhs ]);
-
-                var keys = {};
-                for (var k in lhs) keys[k]=true;
-                for (var k in rhs) keys[k]=true;
-
-                for (var k in keys) {
-                    if (!this.eq(lhs[k], rhs[k], seen)) return false;
-                }
-                return true;
-            },
-            contain: function(lhs, rhs, seen) {
-                if ((typeof obj) != (typeof expected)) return false;
-                if (lhs == null && rhs == null) return true;
-                if (lhs == null || rhs == null) return false;
-
-                if (lhs == rhs) {
-                    return true;
-                } else if (isArray(rhs)) {
-                    return this.containArray(lhs, rhs, seen || []);
-                } else if (typeof rhs == 'object') {
-                    return this.containHash(lhs, rhs, seen || []);
-                }
-
-                return false;
-            },
-            containArray: function(lhs, rhs, seen) {
-                if (lhs == rhs) return true;
-
-                seen = (seen || []).slice(0); // dup
-                for (var i=0; i < seen.length; i++) {
-                    if (seen[i][0] == lhs) return seen[i][1] == rhs;
-                }
-                seen.push([ lhs, rhs ]);
-
-                for (var i=0; i < rhs.length; i++) {
-                    if (!this.contain(lhs[i], rhs[i], seen)) return false;
-                }
-                return true;
-            },
-            containHash: function(lhs, rhs, seen) {
-                if (lhs == rhs) return true;
-
-                seen = (seen || []).slice(0); // dup
-                for (var i=0; i < seen.length; i++) {
-                    if (seen[i][0] == lhs) return seen[i][1] == rhs;
-                }
-                seen.push([ lhs, rhs ]);
-
-                for (var k in rhs) {
-                    if (!this.contain(lhs[k], rhs[k], seen)) return false;
-                }
-                return true;
-            }
-        };
-    })();
+    var B = T.Base;
 
     T.Tester = function(prefix, tests, parent, callbacks) {
         var current = 0;
@@ -174,9 +19,11 @@
             return {
                 name: parent.t.name,
                 wait: null,
-                run: function(test) {
+                run: function(test, testcase) {
                     try {
+                        this.testcase = testcase;
                         test(this);
+                        this.testcase = null;
                     } catch (e) {
                         this.error(e);
                     }
@@ -212,24 +59,27 @@
                     this.is(!!cond, true, name);
                 },
                 isDeeply: function(obj, expected, name) {
-                    this.log(T.DeepCheck.eq(obj, expected), {
+                    this.log(B.eq(obj, expected), {
                         name: name,
                         returned: obj,
                         expected: expected
                     });
                 },
                 isAtLeast: function(obj, expected, name) {
-                    this.log(T.DeepCheck.contain(obj, expected), {
+                    this.log(B.covers(obj, expected), {
                         name: name,
                         returned: obj,
                         expected: expected
                     });
                 },
+                isDefined: function(obj, name) {
+                    this.ok(B.isDefined(obj), name);
+                },
                 isUndefined: function(obj, name) {
-                    this.ok(typeof obj == 'undefined', name);
+                    this.ok(!B.isDefined(obj), name);
                 },
                 isa: function(obj, klass, name) {
-                    this.ok(obj instanceof klass, name);
+                    this.ok(B.isA(obj, klass), name);
                 },
                 isThrown: function(fun, exc, name) {
                     var e;
@@ -238,7 +88,7 @@
                     } catch (err) {
                         e=err;
                     }
-                    this.isa(e, exc, name);
+                    B.isA(e, exc, name);
                 },
                 noThrow: function(fun, name) {
                     try {
@@ -253,12 +103,15 @@
                 // callback to the parent
                 log: function(result, detail) {
                     total++;
+                    detail.name = detail.name || this.testcase;
                     if (result) passed++;
                     parent.progress(result, detail);
                 },
 
                 // utility
-                pp: function(val){ return T.DeepCheck.pp(val); }
+                pp: function(val) {
+                    return B.pp(val, {object:{name:1},cyclic:{detail:1}});
+                }
             };
         };
 
@@ -268,7 +121,7 @@
             var t = parent.t;
             d.body.appendChild(d.createTextNode(t.id));
             w.Tester = new TestHandler(parent, w.Array);
-            w.GNN = { Tester: w.Tester };
+            w.GNN = { Tester: w.Tester, Base: B };
 
             var head = d.getElementsByTagName('head')[0];
             var load = function(path, callback, error) {

@@ -158,6 +158,10 @@ table.summary tr.detail > td
 {
    color: #ee5577;
 }
+.testcase pre
+{
+   margin: 0;
+}
 
 #tests
 {
