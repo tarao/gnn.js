@@ -67,7 +67,7 @@
         t.is(B.className({}), 'Object');
         t.is(B.className(function(){}), 'Function');
         t.is(B.className(new Klass()), 'Klass');
-        t.is(B.className(new (function(){})), 'Object');
+        t.is(B.className(new (function(){})), '');
     }, 'object properties');
 
     Tester.run(function(t) {

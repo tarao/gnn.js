@@ -66,7 +66,7 @@
     };
     B.className = function(obj) {
         if (!B.isRef(obj)) throw new TypeError('className: not a reference');
-        return B.funName(obj.constructor) || 'Object';
+        return B.funName(obj.constructor) || '';
     };
 
 
