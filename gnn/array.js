@@ -1,6 +1,8 @@
 /**
  * Extended array without modifying Array.prototype.
  * The idea is taken from http://perfectionkills.com/how-ecmascript-5-still-does-not-allow-to-subclass-an-array/ .
+ *   - Prototype chain injection if __proto__ is supported
+ *   - Direct property injection otherwise (slower)
  **/
 
 [ 'GNN', function(global) {
