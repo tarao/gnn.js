@@ -141,7 +141,7 @@
             var o = this;
             var len = o.length >>> 0;
             if (typeof fun != 'function') {
-                throw TypeError('reduce: not a function ');
+                throw new TypeError('reduce: not a function ');
             }
             var i = 0;
             var prev;
