@@ -1,9 +1,17 @@
+/**
+ * Extended array without modifying Array.prototype.
+ * The idea is taken from http://perfectionkills.com/how-ecmascript-5-still-does-not-allow-to-subclass-an-array/ .
+ **/
+
 [ 'GNN', function(global) {
     var ns = this.pop();
     var T = global[ns];
     var B = T.Base;
 
     var toA = function(a){ return Array.prototype.slice.call(a); };
+    var addProperties = function(obj, props) {
+        B.addProperties(obj, props, { configurable: true });
+    };
 
     ////////////////////////////////////
     // extended array
@@ -16,8 +24,8 @@
             B.addInterface(obj, A.methods, function(a, b, k) {
                 return A.prototype[k];
             });
-            B.addProperties(obj, A.properties);
-            B.addProperties(obj, A.privateProperties);
+            addProperties(obj, A.properties);
+            addProperties(obj, A.privateProperties);
         });
     };
 
@@ -319,13 +327,13 @@
         }
     };
     A.privateProperties = {
-        _isExtendedArray: { get: function(){return A;} }
+        _isExtendedArray: { value: A }
     };
 
     // merge methods to the prototype
     B.addInterface(A.prototype, A.methods, Array.prototype);
-    B.addProperties(A.prototype, A.properties);
-    B.addProperties(A.prototype, A.privateProperties);
+    addProperties(A.prototype, A.properties);
+    addProperties(A.prototype, A.privateProperties);
     B.setProto(A.prototype, Array.prototype);
 
     // translate return value
@@ -337,13 +345,17 @@
     var installArrayWrapper = function(k) {
         if (!k) return;
         var fun = Array.prototype[k] || A.prototype[k];
-        B.addProperty(A.prototype, k, { get: function() { return function() {
-            var r = fun.apply(this, arguments);
-            if (r instanceof Array && !(r instanceof A) && r !== this) {
-                r = A.apply(null, r);
+        B.addProperty(A.prototype, k, {
+            configurable: true,
+            writable: true,
+            value: function() {
+                var r = fun.apply(this, arguments);
+                if (r instanceof Array && !(r instanceof A) && r !== this) {
+                    r = A.apply(null, r);
+                }
+                return r;
             }
-            return r;
-        } } });
+        });
     };
     for (var i=0; i < A._preserveReturnValue.length; i++) {
         installArrayWrapper(A._preserveReturnValue[i]);
@@ -374,8 +386,8 @@
     A.fromArray = function(arrayLike){ return A.apply(null, arrayLike); };
     A.extend = function(prototype) {
         B.addInterface(prototype, A.methods);
-        B.addProperties(prototype, A.properties);
-        B.addProperties(prototype, A.privateProperties);
+        addProperties(prototype, A.properties);
+        addProperties(prototype, A.privateProperties);
         return prototype;
     };
 
@@ -388,7 +400,7 @@
                 new A(arguments[0]) : A.fromArray(arguments);
         return B.setProto(self, AA.prototype, function(obj, proto) {
             B.addInterface(obj, AA.methods);
-            B.addProperties(obj, AA.privateProperties);
+            addProperties(obj, AA.privateProperties);
         });
     };
 
@@ -407,12 +419,12 @@
 
     // properties
     AA.privateProperties = {
-        _isAssocArray: { get: function(){return true;} }
+        _isAssocArray: { value: AA }
     };
 
     // merge methods to the prototype
     B.addInterface(AA.prototype, AA.methods);
-    B.addProperties(AA.prototype, AA.privateProperties);
+    addProperties(AA.prototype, AA.privateProperties);
     B.setProto(AA.prototype, A.prototype);
 
     // enable AA.method(arrayLike, ...) form
@@ -431,7 +443,7 @@
     AA.fromArray = function(arrayLike){ return AA.apply(null, arrayLike); };
     AA.extend = function(prototype) {
         B.addInterface(prototype, AA.methods);
-        B.addProperties(prototype, AA.privateProperties);
+        addProperties(prototype, AA.privateProperties);
         return prototype;
     };
 } ].reverse()[0](this);

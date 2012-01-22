@@ -310,7 +310,8 @@
         }
         return obj;
     };
-    B.addProperty = function(obj, name, desc) {
+    B.addProperty = function(obj, name, desc, config) {
+        desc = B.merge(desc, config||{});
         if ('defineProperty' in obj) {
             obj.defineProperty(name, desc);
         } else if ('defineProperty' in Object) {
@@ -325,8 +326,8 @@
         }
         return obj;
     };
-    B.addProperties = function(obj, props) {
-        for (var k in props) B.addProperty(obj, k, props[k]);
+    B.addProperties = function(obj, props, config) {
+        for (var k in props) B.addProperty(obj, k, props[k], config);
         return obj;
     };
     B.addInterface = function(target, intrfce, override) {
@@ -342,7 +343,8 @@
             if (b) {
                 B.addProperty(target, k, {
                     configurable: true,
-                    get: function(){ return b; }
+                    writable: true,
+                    value: b
                 });
             }
         }, null, intrfce);

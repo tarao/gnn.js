@@ -4,6 +4,9 @@
     var B = T.Base;
 
     var toA = function(a){ return Array.prototype.slice.call(a); };
+    var addProperties = function(obj, props) {
+        B.addProperties(obj, props, { configurable: true });
+    };
 
     ////////////////////////////////////
     // hash table
@@ -31,8 +34,8 @@
                 B.addInterface(obj, H.methods, function(a, b, k) {
                     return H.prototype[k];
                 });
-                B.addProperties(obj, H.properties);
-                B.addProperties(obj, H.privateProperties);
+                addProperties(obj, H.properties);
+                addProperties(obj, H.privateProperties);
             });
         }
         return self;
@@ -190,13 +193,13 @@
         length: { get: function(){ return H.size(this); } }
     };
     H.privateProperties = {
-        _isHash: { get: function(){return H;} }
+        _isHash: { value: H }
     };
 
     // merge methods to the prototype
     B.addInterface(H.prototype, H.methods);
-    B.addProperties(H.prototype, H.properties);
-    B.addProperties(H.prototype, H.privateProperties);
+    addProperties(H.prototype, H.properties);
+    addProperties(H.prototype, H.privateProperties);
 
     // translate return value
     H._preserveReturnValue = [
@@ -205,13 +208,17 @@
     var installHashWrapper = function(k) {
         if (!k) return;
         var fun = Object.prototype[k] || H.prototype[k];
-        B.addProperty(H.prototype, k, { get: function() { return function() {
-            var r = fun.apply(this, arguments);
-            if (!(r instanceof H) && r !== this) {
-                r = H.call(null, r);
+        B.addProperty(H.prototype, k, {
+            configurable: true,
+            writable: true,
+            value: function() {
+                var r = fun.apply(this, arguments);
+                if (!(r instanceof H) && r !== this) {
+                    r = H.call(null, r);
+                }
+                return r;
             }
-            return r;
-        } } });
+        });
     };
     for (var i=0; i < H._preserveReturnValue.length; i++) {
         installHashWrapper(H._preserveReturnValue[i]);
