@@ -39,13 +39,11 @@
             return obj instanceof klass;
         }
     };
-    B.isArray = function(obj) {
-        if (B.isCallable(Array.isArray)) {
-            return Array.isArray(obj);
-        } else {
-            return B.isA(obj, 'Array');
-        }
-    };
+    if (B.isCallable(Array.isArray)) {
+        B.isArray = function(obj){ return Array.isArray(obj); };
+    } else {
+        B.isArray = function(obj){ return B.isA(obj, 'Array'); };
+    }
     B.isObject = function(obj){ return typeof obj == 'object'; };
     B.isRef = function(obj){ return B.isCallable(obj) || B.isObject(obj); };
     B.kindOf = function(obj) {
