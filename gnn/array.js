@@ -10,7 +10,7 @@
 
     var A;
     A = T.Array = function Array() {
-        var self = arguments.length == 1 && (arguments[0] instanceof Number) ?
+        var self = arguments.length===1 && (typeof arguments[0] == 'number') ?
                 new Array(arguments[0]) : toA(arguments);
         return B.setProto(self, A.prototype, function(obj, proto) {
             B.addInterface(obj, A.methods, function(a, b, k) {
@@ -384,7 +384,7 @@
 
     var AA;
     AA = T.AssocArray = A.Assoc = function() {
-        var self = arguments.length == 1 && (arguments[0] instanceof Number) ?
+        var self = arguments.length===1 && (typeof arguments[0] == 'number') ?
                 new A(arguments[0]) : A.fromArray(arguments);
         return B.setProto(self, AA.prototype, function(obj, proto) {
             B.addInterface(obj, AA.methods);
