@@ -55,6 +55,13 @@
                         expected: expected
                     });
                 },
+                isExactly: function(obj, expected, name) {
+                    this.log(obj === expected, {
+                        name: name,
+                        returned: obj,
+                        expected: expected
+                    });
+                },
                 ok: function(cond, name) {
                     this.is(!!cond, true, name);
                 },

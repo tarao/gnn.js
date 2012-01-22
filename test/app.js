@@ -12,6 +12,10 @@ var runTests = function(result, frames) {
           include: 'base.js',
           run: 'test_base.js'
         },
+        { id: 'GNN.Class',
+          include: [ 'base.js', 'class.js' ],
+          run: 'test_class.js'
+        },
         { id: 'GNN.Hash.method',
           include: [ 'base.js', 'hash.js' ],
           run: [ 'test_hash_class.js',
