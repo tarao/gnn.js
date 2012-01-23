@@ -21,10 +21,10 @@
         t.is(B.isCallable(1), false);
         t.is(B.isCallable({}), false);
 
-        t.is(B.respondTo(undef, 'm'), false);
-        t.is(B.respondTo({ m: function(){} }, 'm'), true);
-        t.is(B.respondTo({ m: {} }, 'm'), false);
-        t.is(B.respondTo({}, 'm'), false);
+        t.is(B.respondsTo(undef, 'm'), false);
+        t.is(B.respondsTo({ m: function(){} }, 'm'), true);
+        t.is(B.respondsTo({ m: {} }, 'm'), false);
+        t.is(B.respondsTo({}, 'm'), false);
 
         t.is(B.isA([], Array), true);
         t.is(B.isA([], 'Array'), true);
@@ -366,6 +366,26 @@
     }, 'partial deep equality is an observable equivalence');
 
     Tester.run(function(t) {
+        var visitor = new B.Visitor(function(obj) {
+            return typeof obj;
+        }, {
+            undefined: function(){ return 0; },
+            null: function(){ return 0; },
+            number: function(){ return 1; },
+            string: function(){ return 1; },
+            function: function(){ return 1; },
+            object: function(obj) {
+                var n = 0;
+                for (var x in obj) {
+                    n += this.visit(obj[x]);
+                }
+                return n;
+            }
+        });
+        t.is(visitor.visit({ a: 1, b: [ 1, 2, { c: 3, d: 4 } ], e: 5 }), 6);
+    }, 'GNN.Base.Visitor');
+
+    Tester.run(function(t) {
         var undef;
         t.is(B.pp(undef), 'undefined');
         t.is(B.pp(null), 'null');
@@ -442,9 +462,9 @@
         var Klass = function Klass(){};
         var x = new Klass();
         x.a = 1; x.b = 2; x.c = 3;
-        t.is(B.pp(x), '{a: 1, b: 2, c: 3}');
-        t.is(B.pp(x,{object:{name:1}}), 'Klass {a: 1, b: 2, c: 3}');
-        t.is(B.pp(x,{prettify:1,object:{name:1}}),
+        t.is(B.pp(x), 'Klass {a: 1, b: 2, c: 3}');
+        t.is(B.pp(x,{object:{name:false}}), '{a: 1, b: 2, c: 3}');
+        t.is(B.pp(x,{prettify:1}),
              'Klass({a: 1, b: 2, c: 3})');
     }, 'pretty print');
 

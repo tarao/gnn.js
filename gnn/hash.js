@@ -12,32 +12,52 @@
     // hash table
 
     var H;
+    /**
+        Creates a hash table.
+        @class A hash table.
+        @name H
+        @exports H as GNN.Hash
+        @param {GNN.AssocArray|object|...*} []
+            If the odd number of arguments are specified,
+            then the first argument must be a GNN.AssocArray or an object.
+            The keys and values of the argument are copied to the hash table.
+            Otherwise, the arguments must be an array.
+            The <code>i</code>th element of the array is a key
+            and the <code>(i+1)</code>th element of the array is the
+            value associated with the <code>i</code>th key
+            for every even number <code>i</code>.
+        @description
+            <p>Methods and property gets in <code>GNN.Hash.prototype</code>
+            are also available as static methods in <code>GNN.Hash</code> with
+            taking the first argument as an array. In this form, an object
+            can be used as a hash.</p>
+        @requires GNN.Base
+        @example
+new GNN.Hash({a:1, b:2, c:3});
+// => Hash {a: 1, b:2, c:3}
+new GNN.Hash(new GNN.AssocArray(['a', 1], ['b', 2], ['c': 3]));
+// => Hash {a: 1, b:2, c:3}
+new GNN.Hash('a', 1, 'b', 2, 'c', 3);
+// => Hash {a: 1, b:2, c:3}
+    */
     H = T.Hash = function Hash(hashLike) {
+        var self = this;
+        if (!(self instanceof H)) self = new H();
+
         if (arguments.length > 0 && arguments.length % 2 == 0) {
             hashLike = toA(arguments);
         }
         if (T.AssocArray && T.AssocArray.isAssocArray(hashLike)) {
-            var hash = {};
-            hashLike.forEach(function(x){ hash[x[0]] = x[1]; });
-            hashLike = hash;
+            hashLike.forEach(function(x){ self[x[0]] = x[1]; });
         } else if (hashLike instanceof Array && hashLike.length % 2 == 0) {
-            var hash = {};
             for (var i=0; i < hashLike.length; i+=2) {
-                hash[hashLike[i]] = hashLike[i+1];
+                self[hashLike[i]] = hashLike[i+1];
             }
-            hashLike = hash;
+        } else {
+            // clone
+            B.fmerge(function(a, b, k){ self[k] = b; }, null, hashLike);
         }
 
-        var self = hashLike || this;
-        if (!(self instanceof H)) {
-            return B.setProto(self, H.prototype, function(obj, proto) {
-                B.addInterface(obj, H.methods, function(a, b, k) {
-                    return H.prototype[k];
-                });
-                addProperties(obj, H.properties);
-                addProperties(obj, H.privateProperties);
-            });
-        }
         return self;
     };
 
@@ -50,23 +70,69 @@
     H.IndexError.prototype.constructor = H.IndexError;
 
     // methods
-    H.methods = {
+    H.methods = /** @lends H.prototype */ {
         // array-like interface
+        /**
+            Returns a key with which the given value is associated.
+            @param {*} val
+            @returns {string|undefined} A key or undefined if nothing found.
+            @description
+                It uses <code>===</code> to check whether the two values are
+                equal.
+            @example
+GNN.Hash({ a:1, b:2, c:3 }).indexOf(2);
+// => 'b'
+        */
         indexOf: function(val) {
             var o = this;
             for (var k in o) {
-                if (o[k] === val) return k;
+                if (o.hasOwnProperty(k) && o[k] === val) return k;
             }
         },
+        /**
+            Returns a new hash table with all elements
+            that satisfy the given condition copied.
+            @param {function} fun
+                The conditional function of the form
+                <code>function(k, v, o){ ... }</code>
+                where <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {object} [thisp=null]
+                The object to use as <code>this</code> when calling
+                <code>fun</code>.
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @returns {GNN.Hash} A new hash table.
+            @example
+GNN.Hash({ a:1, b:2, c:3, d:4, e:5 }).filter(function(k, v){return v%2!=0;});
+// => { a:1, c:3, e:5 }
+        */
         filter: function(fun, thisp) {
             var o = this;
             if (typeof fun != "function") {
                 throw new TypeError('filter: not a function');
             }
-            return B.fmerge(function(ignore, val, k) {
-                if (fun.call(thisp, k, val, o)) return val;
+            var r = {};
+            B.fmerge(function(ignore, val, k) {
+                if (fun.call(thisp, k, val, o)) r[k] = val;
             }, null, o);
+            return r;
         },
+        /**
+            Invokes the given function once per key-value pair.
+            @param {function} fun
+                The function of the form
+                <code>function(k, v, o){ ... }</code>
+                where <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {object} [thisp=null]
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @example
+GNN.Hash({ a:1, b:2, c:3, d:4, e:5, f:6 }).forEach(function(k, v) {
+    console.log(k+v);
+});
+        */
         forEach: function(fun, thisp) {
             var o = this;
             if (typeof fun != "function") {
@@ -76,35 +142,120 @@
                 fun.call(thisp, k, val, o);
             }, null, o);
         },
+        /**
+            Tests whether all the key-value pairs satisfy the condition.
+            @param {function} fun
+                The conditional function of the form
+                <code>function(k, v, o){ ... }</code>
+                where <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {object} [thisp=null]
+                The object to use as <code>this</code> when calling
+                <code>fun</code>.
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @returns {boolean}
+            @example
+GNN.Hash({ a:1, b:3, c:5, d:7 }).every(function(k, v) {
+    return v%2==1 && k.length==1;
+}); // => true
+        */
         every: function(fun, thisp) {
             var o = this;
             if (typeof fun != "function") {
                 throw new TypeError('every: not a function');
             }
             for (var k in o) {
-                if (!fun.call(thisp, k, o[k], o)) return false;
+                if (o.hasOwnProperty(k) &&
+                    !fun.call(thisp, k, o[k], o)) return false;
             }
             return true;
         },
+        /**
+            Returns a new hash table with the results of calling
+            the given function on each value of the key-value pairs.
+            @param {function} fun
+                The function of the form
+                <code>function(k, v, o){ ... }</code>
+                where <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {object} [thisp=null]
+                The object to use as <code>this</code> when calling
+                <code>fun</code>.
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @returns {GNN.Hash} A new hash table.
+            @description
+                It stores <code>fun(k, this[k], this)</code> to the new
+                hash table at key <code>k</code> for each key <code>k</code>
+                in <code>this</code>.
+            @example
+GNN.Hash({ a:1, b:2, c:3, d:4 }).map(function(k,v){return v*v;});
+// => { a:1, b:4, c:9, d:16 }
+GNN.Hash({ a:1, b:2, c:3, d:4 }).map(function(k,v,o){o[k]=0;return v+k;});
+// => { a:'1a', b:'2b', c:'3c', d:'4d' }
+        */
         map: function(fun, thisp) {
             var o = this;
             if (typeof fun != "function") {
                 throw new TypeError('map: not a function');
             }
-            return B.fmerge(function(ignore, val, k) {
-                return fun.call(thisp, k, val, o);
+            var r = {};
+            B.fmerge(function(ignore, val, k) {
+                r[k] = fun.call(thisp, k, val, o);
             }, null, o);
+            return r;
         },
+        /**
+            Tests whether some key-value pairs satisfy the condition.
+            @param {function} fun
+                The conditional function of the form
+                <code>function(k, v, o){ ... }</code>
+                where <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {object} [thisp=null]
+                The object to use as <code>this</code> when calling
+                <code>fun</code>.
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @returns {boolean}
+            @example
+GNN.Hash({ a:1, b:2, c:3, d:4, e:5 }).some(function(k, v){return v%2==0;});
+// => true
+        */
         some: function(fun, thisp) {
             var o = this;
             if (typeof fun != "function") {
                 throw new TypeError('some: not a function');
             }
             for (var k in o) {
-                if (fun.call(thisp, k, o[k], o)) return true;
+                if (o.hasOwnProperty(k) &&
+                    fun.call(thisp, k, o[k], o)) return true;
             }
             return false;
         },
+        /**
+            Applies the given function against an accumulator and
+            each key-value pair of the hash table as to reduce it to
+            a single value.
+            @param {function} fun
+                The conditional function of the form
+                <code>function(r, k, v, o){ ... }</code>
+                where <code>r</code> is the value previously returned in
+                the last invocation of <code>fun</code>,
+                or <code>initial</code> for the first time,
+                <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {*} initial
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @returns {*}
+            @example
+GNN.Hash({ a:1, b:2, c:3, d:4 }).reduce(function(r, k, v){
+    return [ r[0]+k, r[1]*v ];
+}, [ '', 1 ]);
+// => [ 'abcd', 24 ]
+        */
         reduce: function(fun, initial) {
             var o = this;
             if (typeof fun != "function") {
@@ -118,9 +269,44 @@
         },
 
         // more extensions
+        /**
+            Merges the objects into a new hash table.
+            @param {...object} objs
+                Zero or more objects to be merged.
+            @returns {object} A new hash table.
+            @see GNN.Hash.fmerge
+            @see GNN.Hash.merge
+            @example
+GNN.Hash({ a:1, b:2, c:3 }).merge({ a:3 }, { d:4, e:5, c:4 }, { f:6, e:8 });
+// => { a:3, b:2, c:4, d:4, e:8, f:6 }
+        */
         merge: function(objs) {
             return B.merge.apply(null, [this].concat(toA(arguments)));
         },
+        /**
+            Finds the value satisfies the given condition and
+            returns a key-value pair.
+            @param {function|object} fun
+                If <code>fun</code> is an object,
+                <code>function(k,v){return v===fun;}</code> is used as a
+                conditional function.
+                Otherwise, <code>fun</code> is the conditional function of
+                the form
+                <code>function(k, v, o){ ... }</code>
+                where <code>k</code> is the key of the value,
+                <code>v</code> is the value, and
+                <code>o</code> is the hash table.
+            @param {*} [ifnone]
+            @returns {*}
+                A key-value pair in an array with properties 'key' for the
+                key and 'value' for the value if it is found.
+                <code>ifnone</code> otherwise.
+            @example
+GNN.Hash({ a:1, bb:2, c:3 }).find(function(k, v){return k.length > 1;});
+// => [ 'bb', 2 ]
+GNN.Hash({ a:1, bb:2, c:3 }).find(function(k, v){return k.length > 1;}).key;
+// => 'bb'
+        */
         find: function(fun, ifnone) {
             var o = this;
             if (typeof fun != "function") {
@@ -129,7 +315,7 @@
             }
             var o = this;
             for (var k in o) {
-                if (fun.call(null, k, o[k], o)) {
+                if (o.hasOwnProperty(k) && fun.call(null, k, o[k], o)) {
                     var r = [ k, o[k] ];
                     r.key = k; r.value = o[k];
                     return r;
@@ -137,11 +323,30 @@
             }
             return ifnone;
         },
+        /**
+            Returns a new hash table with all the key-value pairs inverted.
+            @returns {GNN.Hash} A new hash table.
+            @example
+GNN.Hash({ a:1, b:2, c:3 }).invert();
+// => { '1': 'a', '2': 'b', '3': 'c' }
+GNN.Hash({ a:[1,2], b:[2,3], c:[3,4] }).invert();
+// => { '1,2': 'a', '2,3': 'b', '3,4': 'c' }
+        */
         invert: function() {
             var r = {};
             H.forEach(this, function(k, v){ r[v] = k; });
             return r;
         },
+        /**
+            Calls the given function with passing <code>this</code> and
+            returns <code>this</code>.
+            @param {function} fun
+            @returns {GNN.Hash} <code>this</code>
+            @throws {TypeError} If <code>fun</code> is not a function.
+            @example
+GNN.Hash({ a:1, b:2, c:3 }).tap(function(x){console.log(x);});
+// => { a:1, b:2, c:3 }
+        */
         tap: function(fun) {
             if (typeof fun != "function") {
                 throw new TypeError('tap: not a function');
@@ -151,8 +356,19 @@
         },
 
         // syntactic sugars
+        /**
+            Returns the value of the given key.
+            @param {string} key
+            @param {*} [ifnone]
+            @returns {*}
+                The value or <code>ifnone</code> if
+                there is no value for <code>key</code>.
+            @throws {GNN.Hash.IndexError}
+                If <code>ifnone</code> is not specified and
+                the value is not found.
+        */
         fetch: function(k, ifnone) {
-            if (k in this) {
+            if (this.hasOwnProperty(k)) {
                 return this[k];
             } else if (arguments.length >= 2) {
                 return ifnone;
@@ -161,15 +377,46 @@
                 throw new H.IndexError(msg);
             }
         },
+        /**
+            Insert the key-value pair into the hash table.
+            @param {string} key
+            @param {*} val
+            @returns {GNN.Hash} <code>this</code>
+        */
         store: function(k, v) {
             this[k]=v;
             return this;
         },
+        /**
+            Returns whether the the hash table is empty.
+            @returns {boolean}
+        */
         isEmpty: function(){ return H.size(this) == 0; },
-        clone: function(){ return H.merge({}, this); },
-        member: function(k){ return H.indexOf(this, k) != null; },
+        /**
+            Returns a shallow copy of the hash table.
+            @returns {GNN.Hash}
+        */
+        clone: function() {
+            var obj = {};
+            B.fmerge(function(a, b, k){ obj[k] = b; }, null, this);
+            return obj;
+        },
+        /**
+            Returns whether the given value is in the hash table.
+            @param {*} val
+            @returns {boolean}
+            @example
+GNN.Hash({ a:1, b:2, c:3 }).member(3);
+// => true
+        */
+        member: function(v){ return H.indexOf(this, v) != null; },
 
         // conversions
+        /**
+            Returns an array whose elements are key-value pairs.
+            Each key-value pair is stored in an array.
+            @returns {*[][]}
+        */
         toArray: function() {
             var rv = [];
             H.forEach(this, function(k, v){ rv.push([ k, v ]); });
@@ -178,23 +425,42 @@
     };
 
     // properties
-    H.properties = {
+    H.properties = /** @lends H.prototype */ {
+        /**
+            Returns an array of keys.
+            @type string[]
+        */
         keys: { get: function() {
             var rv = [];
             H.forEach(this, function(k, v){ rv.push(k); });
             return rv;
         } },
+        /**
+            Returns an array of values.
+            @type *[]
+        */
         values: { get: function() {
             var rv = [];
             H.forEach(this, function(k, v){ rv.push(v); });
             return rv;
         } },
+        /**
+            Returns the size of the hash table.
+            @type number
+        */
         size: { get: function(){ return H.keys(this).length; } },
+        /**
+            Returns the size of the hash table.
+            @type number
+        */
         length: { get: function(){ return H.size(this); } }
     };
     H.privateProperties = {
         _isHash: { value: H }
     };
+    if (B.respondsTo(Object, 'keys')) {
+        H.properties.keys = { get: function(){ return Object.keys(this); } };
+    }
 
     // merge methods to the prototype
     B.addInterface(H.prototype, H.methods);
@@ -242,7 +508,12 @@
     }, H, H.properties);
 
     // class methods
+    /**
+        Returns whether the given object is a hash table.
+        @param {object} hashLike
+        @returns {boolean}
+    */
     H.isHash = function(hashLike) {
-        return (hashLike||{})._isHash == H;
+        return (hashLike||{})._isHash === H;
     };
 } ].reverse()[0](this);

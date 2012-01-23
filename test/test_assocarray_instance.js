@@ -14,7 +14,7 @@ var Test = (function(B, A, AA) {
         apply: function(self, m, args) {
             return self[m].apply(self, args);
         },
-        testMethod: function(method, defs) {
+        testMethod: function(method, defs, atleast) {
             var t = Tester;
             var m = this.sig(method);
             try {
@@ -28,7 +28,23 @@ var Test = (function(B, A, AA) {
                     ppself = ppself.replace(/^\[(.*)\]$/, this.name+'($1)');
                     var ppargs = t.pp(d[1]).replace(/^\[(.*)\]$/, '($1)');
                     var ret = this.apply(self ,method, d[1]);
-                    t.isDeeply(ret, d[2], ppself+'.'+method+ppargs);
+                    if (typeof d[2] == 'function') {
+                        var desc = '('+t.pp(d[2])+')';
+                        desc += '('+ppself+'.'+method+ppargs+')';
+                        t.ok(d[2](ret), desc);
+                    } else if (atleast){
+                        t.isAtLeast(ret, d[2], ppself+'.'+method+ppargs);
+                    } else {
+                        t.isDeeply(ret, d[2], ppself+'.'+method+ppargs);
+                    }
+
+                    if (A._preserveReturnValue.indexOf(method) >= 0) {
+                        // we can't do (ret instanceof AA) here
+                        // because ret is extended by copying methods
+                        // to a new instace of ordinary Array (in IE)
+                        t.ok(A.isExtendedArray(ret) && AA.isAssocArray(ret),
+                             m+' returns a '+this.name);
+                    }
                 }
             } catch (e) {
                 t.error(e, m);

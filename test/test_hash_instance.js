@@ -38,10 +38,7 @@ var Test = (function(B, H) {
                     }
 
                     if (H._preserveReturnValue.indexOf(method) >= 0) {
-                        // we can't do (ret instanceof H) here
-                        // because ret is extended by copying methods
-                        // to a new instace of ordinary Object (in IE)
-                        t.ok(H.isHash(ret),
+                        t.ok(H.isHash(ret) && ret instanceof H,
                              m+' returns a '+this.name);
                     }
                 }

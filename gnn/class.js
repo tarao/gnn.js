@@ -10,6 +10,67 @@
     var tag = {};
 
     var C;
+    /**
+        Creates a class.
+        @class A class factory.
+        @name C
+        @exports C as GNN.Class
+        @param {function} [init]
+        @param {GNN.Class|function} [base]
+            A class or a constructor.
+        @description
+            It is a wrapper to define classes.
+            The return value is a function, which can be used as a
+            constructor in a <code>new</code> expression (and it safely
+            creates an instance if you forget to write "<code>new</code>").
+
+            <p>The semantics is almost the same
+            as a style in which fields are initalized in the constructor by
+            <code>this.x = ...</code>, instance methods are defined in
+            the constructor's <code>prototype</code>, and class methods are
+            added as properties of the constructor.</p>
+
+            <p>With a base class, it supports super method calls inside the
+            instance. <code>this.$super(...)</code> is a super initializer call
+            and <code>this.$super.foo(...)</code> is a super method call of
+            a method named "foo".</p>
+        @requires GNN.Base
+        @example
+var Foo = GNN.Class(function FooClass(a, b) {
+    this.a=a; this.b=b;
+}).member({
+    sum: function(){ return this.a + this.b; },
+    prod: function(){ return this.a * this.b; }
+}).classMember({
+    foo: function(){ return 'foo'; },
+    bar: function(){ return 'bar'; }
+});
+
+var Bar = GNN.Class(function BarClass(a, b, c) {
+    this.$super(a, b); this.c=c;
+}, Foo).member({
+    sum: function(){ return this.$super.sum() + this.c; }
+}).classMember({
+    foo: function(){ return 'baz'; }
+});
+
+Foo.foo(); // => 'foo'
+Foo.bar(); // => 'bar'
+var foo = new Foo(1, 2);
+GNN.Base.className(foo); // => FooClass
+foo instanceof Foo; // => true
+foo.sum(); // => 3
+foo.prod(); // => 2
+
+Bar.foo(); // => 'baz'
+Foo.bar(); // => 'bar'
+var bar = new Bar(10, 20, 30);
+GNN.Base.className(bar); // => BarClass
+bar instanceof Bar; // => true
+bar instanceof Foo; // => true
+bar.sum(); // => 60
+bar.prod(); // => 200;
+    */
     C = T.Class = function Class(init, base) {
         var klass = { members: {}, cmembers: {}, config: {} };
 
@@ -76,10 +137,48 @@
             return ctor;
         };
 
-        var def = {
+        var def = /** @lends C.prototype */ {
+            /**
+               Sets initializer.
+               @param {function} init
+               @returns {GNN.Class} this
+               @example
+var Foo = GNN.Class().initializer(function(a, b) {
+    this.a=a; this.b=b;
+}).member({
+    sum: function(){ return this.a + this.b; },
+    prod: function(){ return this.a * this.b; }
+});
+            */
             initializer: function(init){ return update({ init: init }); },
+            /**
+               Sets base class.
+               @param {GNN.Class|function} base
+                   A class or a constructor.
+               @returns {GNN.Class} this
+               @example
+var Bar = GNN.Class(function(a, b, c) {
+    this.$super(a, b); this.c=c;
+}).inherits(Foo).member({
+    sum: function(){ return this.$super.sum() + this.c; },
+});
+            */
             inherits: function(base){ return update({ base: base }); },
             config: function(config){ return update({ config: config }) },
+            /**
+               Sets instance methods and properties.
+               @param {object|string} members
+                   A hash table of property names and values or
+                   a name of a property.
+               @param {*} [rest]
+                   If <code>members</code> specifies a name of a property,
+                   then <code>rest</code> specifies a value of the property.
+               @returns {GNN.Class} this
+               @example
+var Bar = GNN.Class(function(a, b, c) {
+    this.$super(a, b); this.c=c;
+}, Foo).member('sum', function(){ return this.$super.sum() + this.c; });
+            */
             member: function(members, rest) {
                 if (typeof members == 'string' && B.isDefined(rest)) {
                     var m = members; members = {}; members[m] = rest;
@@ -87,6 +186,16 @@
                 members = B.merge(klass.members, members||{});
                 return update({ members: members || {} });
             },
+            /**
+               Sets class methods and properties.
+               @param {object|string} members
+                   A hash table of property names and values or
+                   a name of a property.
+               @param {*} [rest]
+                   If <code>members</code> specifies a name of a property,
+                   then <code>rest</code> specifies a value of the property.
+               @returns {GNN.Class} this
+            */
             classMember: function(members, rest) {
                 if (typeof members == 'string' && B.isDefined(rest)) {
                     var m = members; members = {}; members[m] = rest;

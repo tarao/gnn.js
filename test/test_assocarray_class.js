@@ -14,7 +14,7 @@ var Test = (function(B, A, AA) {
         apply: function(self, m, args) {
             return this.klass[m].apply(null, [self].concat(args));
         },
-        testMethod: function(method, defs) {
+        testMethod: function(method, defs, atleast) {
             var t = Tester;
             var m = this.sig(method);
             try {
@@ -26,7 +26,21 @@ var Test = (function(B, A, AA) {
                     var ppargs = t.pp([self].concat(d[1]));
                     ppargs = ppargs.replace(/^\[(.*)\]$/, '($1)');
                     var ret = this.apply(self ,method, d[1]);
-                    t.isDeeply(ret, d[2], this.name+'.'+method+ppargs);
+                    if (typeof d[2] == 'function') {
+                        var desc = '('+t.pp(d[2])+')';
+                        desc += '('+this.name+'.'+method+ppargs+')';
+                        t.ok(d[2](ret), desc);
+                    } else if (atleast){
+                        t.isAtLeast(ret, d[2], this.name+'.'+method+ppargs);
+                    } else {
+                        t.isDeeply(ret, d[2], this.name+'.'+method+ppargs);
+                    }
+
+                    if (A._preserveReturnValue.indexOf(method) >= 0) {
+                        t.ok(!A.isExtendedArray(ret) && !(ret instanceof A) &&
+                             !AA.isAssocArray(ret) && !(ret instanceof AA),
+                             m+' does not return a '+this.name+' but Array');
+                    }
                 }
             } catch (e) {
                 t.error(e, m);
