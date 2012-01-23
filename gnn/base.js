@@ -211,7 +211,12 @@ GNN.Base.className(function(){}); // => 'Function'
     */
     B.className = function(obj) {
         if (!B.isRef(obj)) throw new TypeError('className: not a reference');
-        return B.funName(obj.constructor) || '';
+        if (B.isCallable(obj.constructor)) {
+            return B.funName(obj.constructor) || '';
+        } else {
+            var c = Object.prototype.toString.call(obj);
+            return c.substring('[object '.length, c.length-1);
+        }
     };
 
 
@@ -458,6 +463,11 @@ visitor.visit({ a: 1, b: [ 1, 2, { c: 3, d: 4 } ], e: 5 }); // => 6
     };
     var ppFun = function(fun, args) {
         var str = fun+'';
+        if (/^\[object (.*)\]$/.test(str)) {
+            var body = '...';
+            if (args.indent) body = 'omitted';
+            return 'function ' + RegExp.$1 + '() { ' + body + ' }';
+        }
         if (!args.indent) {
             str = str.replace(/^\s+/, '').replace(/\s+/g, ' ');
         }
@@ -540,6 +550,17 @@ GNN.Base.pp(y,{prettify:1}); // => 'SomeClass({a: 1, b: 2})'
         var fdetail = !('detail' in fargs) || fargs.detail;
         var prettify = args.prettify && fdetail;
 
+        var objName = function(klass, x){ return x; };
+        if (!('name' in (args.object||{})) || (args.object||{}).name) {
+            if (prettify) {
+                /** @ignore */
+                objName = function(klass, x){ return klass+'('+x+')'; };
+            } else {
+                /** @ignore */
+                objName = function(klass, x){ return klass+' '+x; };
+            }
+        }
+
         var str = new B.Visitor(B.kindOf, {
             atom: function(atom) {
                 return (typeof atom == 'string') ? ppStr(atom) : atom+'';
@@ -551,17 +572,23 @@ GNN.Base.pp(y,{prettify:1}); // => 'SomeClass({a: 1, b: 2})'
                 return '['+ss.join(', ')+']';
             },
             object: function(obj) {
-                var name = function(x){ return x; };
-                if ((args.object||{}).name) {
-                    var klass = B.className(obj);
-                    if (klass == 'Object') {
-                        // ommit
-                    } else if (prettify) {
-                        name = function(x){ return klass+'('+x+')'; };
-                    } else {
-                        name = function(x){ return klass+' '+x; };
+                var name = function(klass, x){ return x; };
+                var klass = B.className(obj);
+                if (klass != 'Object') name = objName;
+
+                if (B.isObject(obj) && !B.isECMAObject(obj)) {
+                    if (B.isDefined(document) && obj instanceof Element) {
+                        try {
+                            var div = document.createElement('div');
+                            div.appendChild(obj);
+                            return div.innerHTML;
+                        } catch (e) { /* ignore */ }
                     }
+                    var str = '{...}';
+                    if (prettify) str = 'omitted';
+                    return name(klass, str);
                 }
+
                 var ss = [];
                 for (var k in obj) {
                     var val = this.visit(obj[k]);
@@ -570,7 +597,7 @@ GNN.Base.pp(y,{prettify:1}); // => 'SomeClass({a: 1, b: 2})'
                     }
                     ss.push(k + ': ' + val);
                 }
-                return name('{'+ss.join(', ')+'}');
+                return name(klass, '{'+ss.join(', ')+'}');
             },
             cyclic: function(obj, i) {
                 if (prettify) return 'cyclic('+i+')';
