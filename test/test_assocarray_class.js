@@ -49,6 +49,15 @@ var Test = (function(B, A, AA) {
     };
 
     Tester.run(function(t) {
+        t.isDeeply(AA.fromArray([ 1, 2, 3 ]), [ 1, 2, 3 ]);
+        t.ok(AA.isAssocArray(AA.fromArray([ 1, 2, 3 ])));
+        t.isDeeply(AA.fromArray([ 1 ]), [ 1 ]);
+        t.ok(AA.isAssocArray(AA.fromArray([ 1 ])));
+        t.isDeeply(AA.fromArray([]), []);
+        t.ok(AA.isAssocArray(AA.fromArray([])));
+    }, 'GNN.Array.fromArray');
+
+    Tester.run(function(t) {
         t.ok(AA.isAssocArray(new AA()),
              'a '+test.name+' is an associative array');
         t.ok(A.isExtendedArray(new AA()),
@@ -60,4 +69,4 @@ var Test = (function(B, A, AA) {
     });
 
     return test;
-})(GNN.Base, GNN.Array, GNN.AssocArray);
+})(GNN.Tester.Base, GNN.Array, GNN.AssocArray);

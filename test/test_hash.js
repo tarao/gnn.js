@@ -291,4 +291,4 @@
               [ [ 'a', 1 ], [ 'b', 2 ], [ 'c', 3 ] ] ],
         ]);
     });
-})(GNN.Base, GNN.Hash);
+})(GNN.Tester.Base, GNN.Hash);

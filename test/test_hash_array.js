@@ -16,4 +16,4 @@
         t.isDeeply(H(AA.fromArray(H(h).toArray())), H(aa),
                    'hash to associative array');
     });
-})(GNN.Base, GNN.Hash, GNN.Array, GNN.AssocArray);
+})(GNN.Tester.Base, GNN.Hash, GNN.Array, GNN.AssocArray);

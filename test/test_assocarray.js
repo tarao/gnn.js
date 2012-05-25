@@ -37,4 +37,4 @@
         [ [ [ null, 2 ], [ undef, 4 ], [ 1, 4 ] ], [ null ], 2 ],
         [ [ [ null, 2 ], [ undef, 4 ], [ 1, 4 ] ], [ undef ], 4 ],
     ]);
-})(GNN.Base, GNN.AssocArray);
+})(GNN.Tester.Base, GNN.AssocArray);

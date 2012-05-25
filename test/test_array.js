@@ -4,7 +4,11 @@
         var undef1;
 
         t.ok(Test.instance(1, 2, 3) instanceof Array, 'instance');
+        t.ok(Test.instance() instanceof Array, 'instance');
+        t.ok(Test.instance(5) instanceof Array, 'instance');
         t.isDeeply(Test.instance(1, 2, 3), [1, 2, 3], 'value');
+        t.isDeeply(Test.instance(), [], 'value');
+        t.isDeeply(Test.instance(5), [undef,undef,undef,undef,undef], 'value');
 
         // indexOf
         Test.testMethod('indexOf', [
@@ -239,6 +243,15 @@
             [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 3 ],
         ]);
 
+        // findIndex
+        Test.testMethod('findIndex', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
+              1 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;} ],
+              -1 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 2 ],
+        ]);
+
         // findLast
         Test.testMethod('findLast', [
             [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
@@ -248,6 +261,56 @@
             [ [ 1, 3, 5 ], [ function(x){return x%2==0;}, 10 ],
               10 ],
             [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 3 ],
+        ]);
+
+        // findLastIndex
+        Test.testMethod('findLastIndex', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
+              5 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;} ],
+              -1 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ 3 ], 2 ],
+        ]);
+
+        // count
+        Test.testMethod('count', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2!=0;} ],
+              3 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x, i){return i%2!=0;} ],
+              3 ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
+              3 ],
+            [ [ 1, 3, 5 ], [ function(x){return x%2==0;} ],
+              0 ],
+            [ [ 1, 2, 3, 4, 3, 6 ], [ 3 ], 2 ],
+            [ [ 1, 2, 3, 4, 3, 6 ], [], 6 ],
+        ]);
+
+        // max
+        Test.testMethod('min', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [  ], 1 ],
+            [ [ 9, 3, 4, 7, 3, 6 ], [ function(a, b){return a%5 - b%5;} ],
+              6 ],
+            [ [ ], [  ],
+              undef ],
+        ]);
+
+        // max
+        Test.testMethod('max', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [  ], 6 ],
+            [ [ 1, 1, 4, 7, 3, 6 ], [ function(a, b){return a%5 - b%5;} ],
+              4 ],
+            [ [ ], [  ],
+              undef ],
+        ]);
+
+        // minmax
+        Test.testMethod('minmax', [
+            [ [ 1, 2, 3, 4, 5, 6 ], [  ], [ 1, 6 ] ],
+            [ [ 9, 3, 4, 7, 3, 6 ], [ function(a, b){return a%5 - b%5;} ],
+              [ 6, 4 ] ],
+            [ [ ], [  ],
+              [ undef, undef ] ],
         ]);
 
         // groupBy
@@ -271,6 +334,91 @@
             tmp[1] = tmp;
             Test.call(tmp, 'flatten');
         }, A.ArgumentError, Test.sig('flatten')+' throws');
+
+        // take
+        Test.testMethod('take', [
+            [ [ 4, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
+              [ 4, 2 ] ],
+            [ [ 1, 2, 3 ], [ function(x){return x%2==0;} ],
+              [] ],
+            [ [ 1, 2, 3 ], [ function(x){return true;} ],
+              [ 1, 2, 3 ] ],
+            [ [ 3, 3, 5 ], [ 3 ],
+              [ 3, 3 ] ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [ ], [] ],
+        ]);
+
+        // drop
+        Test.testMethod('drop', [
+            [ [ 4, 2, 3, 4, 5, 6 ], [ function(x){return x%2==0;} ],
+              [ 3, 4, 5, 6 ] ],
+            [ [ 1, 2, 3 ], [ function(x){return x%2==0;} ],
+              [ 1, 2, 3 ] ],
+            [ [ 1, 2, 3 ], [ function(x){return true;} ],
+              [] ],
+            [ [ 3, 3, 5 ], [ 3 ],
+              [ 5 ] ],
+            [ [ 1, 2, 3, 4, 5, 6 ], [], [ 1, 2, 3, 4, 5, 6 ] ],
+        ]);
+
+        // union
+        Test.testMethod('union', [
+            [ [ 1, 3, 5, 7 ],
+              [ [ 2, 4, 6 ] ],
+              [ 1, 3, 5, 7, 2, 4, 6 ] ],
+            [ [ 1, 2, 5 ],
+              [ [ 2, 4, 5 ] ],
+              [ 1, 2, 5, 4 ] ],
+            [ [ 1, 1, 2, 5 ],
+              [ [ 2, 2, 4, 4, 5 ] ],
+              [ 1, 1, 2, 5, 4, 4 ] ],
+            [ [ 1, 3, 6, 7 ],
+              [ [ 2, 1, 4, 5, 5 ], function(a,b){return a%3 == b%3;} ],
+              [ 1, 3, 6, 7, 2, 5, 5 ] ],
+        ]);
+
+        // inter
+        Test.testMethod('inter', [
+            [ [ 1, 3, 5, 7 ],
+              [ [ 2, 4, 6 ] ],
+              [] ],
+            [ [ 1, 2, 5 ],
+              [ [ 2, 4, 5 ] ],
+              [ 2, 5 ] ],
+            [ [ 1, 1, 2, 2, 5, 5 ],
+              [ [ 2, 2, 4, 4, 5 ] ],
+              [ 2, 2, 5, 5 ] ],
+            [ [ 1, 3, 6, 7 ],
+              [ [ 2, 1, 4, 5, 5 ], function(a,b){return a%3 == b%3;} ],
+              [ 1, 7 ] ],
+        ]);
+
+        // diff
+        Test.testMethod('diff', [
+            [ [ 1, 3, 5, 7 ],
+              [ [ 2, 4, 6 ] ],
+              [ 1, 3, 5, 7 ] ],
+            [ [ 1, 2, 5 ],
+              [ [ 2, 4, 5 ] ],
+              [ 1 ] ],
+            [ [ 1, 1, 2, 2, 5, 5 ],
+              [ [ 2, 2, 4, 4, 5 ] ],
+              [ 1, 1 ] ],
+            [ [ 1, 3, 6, 7 ],
+              [ [ 2, 1, 4, 5, 5 ], function(a,b){return a%3 == b%3;} ],
+              [ 3, 6 ] ],
+        ]);
+
+        // repeat
+        Test.testMethod('repeat', [
+            [ [ 1, 2, 3, ], [ 3 ], [ 1, 2, 3, 1, 2, 3, 1, 2, 3 ] ],
+            [ [ 1, 2, 3, ], [ 1 ], [ 1, 2, 3 ] ],
+            [ [ 1, 2, 3, ], [ 0 ], [] ],
+            [ [ 1, 2, 3, ], [ -1 ], [] ],
+        ]);
+        t.isThrown(function() {
+            Test.call(Test.instance(1, 2, 3), 'repeat', {});
+        }, TypeError, Test.sig('repeat')+' throws');
 
         // at
         Test.testMethod('at', [
@@ -358,4 +506,4 @@
             t.error(e, Test.sig('clone'));
         }
     });
-})(GNN.Base, GNN.Array);
+})(GNN.Tester.Base, GNN.Array);

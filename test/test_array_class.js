@@ -4,7 +4,7 @@ var Test = (function(B, A) {
         name: 'GNN.Array',
         delim: '.',
         sig: function(m){ return this.name+this.delim+m; },
-        instance: function(){ return Array.prototype.slice.call(arguments); },
+        instance: function(){ return Array.apply(null, arguments); },
         call: function(self, m, args) {
             args = Array.prototype.slice.call(arguments);
             args = args.slice(2);
@@ -47,6 +47,15 @@ var Test = (function(B, A) {
     };
 
     Tester.run(function(t) {
+        t.isDeeply(A.fromArray([ 1, 2, 3 ]), [ 1, 2, 3 ]);
+        t.ok(A.isExtendedArray(A.fromArray([ 1, 2, 3 ])));
+        t.isDeeply(A.fromArray([ 1 ]), [ 1 ]);
+        t.ok(A.isExtendedArray(A.fromArray([ 1 ])));
+        t.isDeeply(A.fromArray([]), []);
+        t.ok(A.isExtendedArray(A.fromArray([])));
+    }, 'GNN.Array.fromArray');
+
+    Tester.run(function(t) {
         t.ok(A.isExtendedArray(new A()),
              'a '+test.name+' is an exteded array');
         t.ok(!A.isExtendedArray(new Array()) && !(new Array() instanceof A),
@@ -54,4 +63,4 @@ var Test = (function(B, A) {
     });
 
     return test;
-})(GNN.Base, GNN.Array);
+})(GNN.Tester.Base, GNN.Array);

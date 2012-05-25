@@ -215,4 +215,4 @@
         t.is(foo.callJoin(), '5+6+7+8', 'super.method (call)');
         t.is(foo.applyJoin(), '5+6+7+8', 'super.method (apply)');
     }, 'super');
-})(GNN.Base, GNN.Class);
+})(GNN.Tester.Base, GNN.Class);

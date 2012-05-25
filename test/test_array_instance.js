@@ -92,4 +92,4 @@ var Test = (function(B, A) {
     });
 
     return test;
-})(GNN.Base, GNN.Array);
+})(GNN.Tester.Base, GNN.Array);

@@ -62,4 +62,4 @@ var Test = (function(B, H) {
     });
 
     return test;
-})(GNN.Base, GNN.Hash);
+})(GNN.Tester.Base, GNN.Hash);

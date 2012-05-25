@@ -331,7 +331,8 @@ Tester.run(function(t) {
             var t = parent.t;
             d.body.appendChild(d.createTextNode(t.id));
             w.Tester = new TestHandler(parent);
-            w.GNN = { Tester: w.Tester, Base: B };
+            w.Tester.Base = B;
+            w.GNN = { Tester: w.Tester };
 
             var head = d.getElementsByTagName('head')[0];
             var load = function(path, callback, error) {

@@ -1,11 +1,51 @@
-[ 'GNN', function(global) {
+[ 'GNN', function(G) {
     var ns = this.pop();
-    var T = global[ns];
-    var B = T.Base;
+    if (typeof G[ns] == 'undefined') G[ns] = {};
 
-    var toA = function(a){ return Array.prototype.slice.call(a); };
+    var T = G[ns];
+    var B = T.Base || {};
+
+    ////////////////////////////////////
+    // internal functions
+
+    var toA = function(a, s, e){ return G.Array.prototype.slice.call(a,s,e); };
+    var isDefined = B.isDefined || function(obj, undef){ return obj!==undef; };
+    var isFun = B.isCallable || function(x){ return typeof x == 'function'; };
+    var respondsTo = B.respondsTo || function(obj, name) {
+        return isDefined(obj) && isFun(obj[name]);
+    };
+    var fmerge = B.fmerge || function(fun, a, b) {
+        a = a || {}; fun = fun || function(x,y){ return y; };
+        for (var p in b) b.hasOwnProperty(p) && (a[p]=fun(a[p],b[p],p)||a[p]);
+        return a;
+    };
+    var merge = B.merge || function(a, b){ return fmerge(null, a, b); };
+    var addProperty = B.addProperty || function(obj, name, d, config) {
+        d = merge(merge(null, config||{}), d);
+        if ('defineProperty' in Object) {
+            Object.defineProperty(obj, name, d);
+        } else {
+            var f = { get: '__defineGetter__', set: '__defineSetter__' };
+            for (var k in f) k in d && f[k] in obj && obj[f[k]](name, d[k]);
+        }
+        return obj;
+    };
+    var addProperties_ = B.addProperties || function(obj, props, config) {
+        for (var k in props) addProperty(obj, k, props[k], config);
+        return obj;
+    };
     var addProperties = function(obj, props) {
-        B.addProperties(obj, props, { configurable: true });
+        return addProperties_(obj, props, { configurable: true });
+    };
+    var addInterface = function(obj, intrfce, override) {
+        var c = override ? function(){return false;} : function(k) {
+            return obj[k] || ((obj.constructor||{}).prototype||{})[k];
+        };
+        var conf = { configurable: true, writable: true };
+        for (var k in intrfce) {
+            if (!intrfce[k] || c(k)) continue;
+            addProperty(obj, k, merge(conf, { value: intrfce[k] }));
+        }
     };
 
     ////////////////////////////////////
@@ -55,7 +95,7 @@ new GNN.Hash('a', 1, 'b', 2, 'c', 3);
             }
         } else {
             // clone
-            B.fmerge(function(a, b, k){ self[k] = b; }, null, hashLike);
+            fmerge(function(a, b, k){ self[k] = b; }, null, hashLike);
         }
 
         return self;
@@ -113,7 +153,7 @@ GNN.Hash({ a:1, b:2, c:3, d:4, e:5 }).filter(function(k, v){return v%2!=0;});
                 throw new TypeError('filter: not a function');
             }
             var r = {};
-            B.fmerge(function(ignore, val, k) {
+            fmerge(function(ignore, val, k) {
                 if (fun.call(thisp, k, val, o)) r[k] = val;
             }, null, o);
             return r;
@@ -138,7 +178,7 @@ GNN.Hash({ a:1, b:2, c:3, d:4, e:5, f:6 }).forEach(function(k, v) {
             if (typeof fun != "function") {
                 throw new TypeError('forEach: not a function');
             }
-            B.fmerge(function(ignore, val, k) {
+            fmerge(function(ignore, val, k) {
                 fun.call(thisp, k, val, o);
             }, null, o);
         },
@@ -201,7 +241,7 @@ GNN.Hash({ a:1, b:2, c:3, d:4 }).map(function(k,v,o){o[k]=0;return v+k;});
                 throw new TypeError('map: not a function');
             }
             var r = {};
-            B.fmerge(function(ignore, val, k) {
+            fmerge(function(ignore, val, k) {
                 r[k] = fun.call(thisp, k, val, o);
             }, null, o);
             return r;
@@ -274,14 +314,26 @@ GNN.Hash({ a:1, b:2, c:3, d:4 }).reduce(function(r, k, v){
             @param {...object} objs
                 Zero or more objects to be merged.
             @returns {object} A new hash table.
-            @see GNN.Hash.fmerge
-            @see GNN.Hash.merge
+            @see GNN.Base.fmerge
+            @see GNN.Base.merge
             @example
 GNN.Hash({ a:1, b:2, c:3 }).merge({ a:3 }, { d:4, e:5, c:4 }, { f:6, e:8 });
 // => { a:3, b:2, c:4, d:4, e:8, f:6 }
         */
         merge: function(objs) {
-            return B.merge.apply(null, [this].concat(toA(arguments)));
+            var o = {};
+            fun = function(x, y){ return y; };
+            objs = [this].concat(toA(arguments));
+            for (var i=0; i < objs.length; i++) {
+                var other = objs[i];
+                if (other == null) continue;
+                for (var p in other) {
+                    if (!other.hasOwnProperty(p)) continue;
+                    var v = fun(o[p], other[p], p);
+                    if (isDefined(v)) o[p] = v;
+                }
+            }
+            return o;
         },
         /**
             Finds the value satisfies the given condition and
@@ -398,7 +450,7 @@ GNN.Hash({ a:1, b:2, c:3 }).tap(function(x){console.log(x);});
         */
         clone: function() {
             var obj = {};
-            B.fmerge(function(a, b, k){ obj[k] = b; }, null, this);
+            fmerge(function(a, b, k){ obj[k] = b; }, null, this);
             return obj;
         },
         /**
@@ -458,12 +510,12 @@ GNN.Hash({ a:1, b:2, c:3 }).member(3);
     H.privateProperties = {
         _isHash: { value: H }
     };
-    if (B.respondsTo(Object, 'keys')) {
+    if (respondsTo(Object, 'keys')) {
         H.properties.keys = { get: function(){ return Object.keys(this); } };
     }
 
     // merge methods to the prototype
-    B.addInterface(H.prototype, H.methods);
+    addInterface(H.prototype, H.methods);
     addProperties(H.prototype, H.properties);
     addProperties(H.prototype, H.privateProperties);
 
@@ -474,7 +526,7 @@ GNN.Hash({ a:1, b:2, c:3 }).member(3);
     var installHashWrapper = function(k) {
         if (!k) return;
         var fun = Object.prototype[k] || H.prototype[k];
-        B.addProperty(H.prototype, k, {
+        addProperty(H.prototype, k, {
             configurable: true,
             writable: true,
             value: function() {
@@ -491,13 +543,13 @@ GNN.Hash({ a:1, b:2, c:3 }).member(3);
     }
 
     // enable H.method(obj, ...) form
-    B.fmerge(function(a, fun, k) {
+    fmerge(function(a, fun, k) {
         return function(thisp, args) {
             args = toA(arguments); args.shift();
             return fun.apply(thisp, args);
         };
     }, H, H.methods);
-    B.fmerge(function(a, b, k) {
+    fmerge(function(a, b, k) {
         return function(thisp, args) {
             args = toA(arguments); args.shift();
             var r;

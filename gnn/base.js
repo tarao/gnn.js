@@ -1,13 +1,14 @@
-[ 'GNN' , function(global) {
+[ 'GNN' , function(G) {
     var ns = this.pop();
-    global[ns] = { Base: {} };
+    if (typeof G[ns] == 'undefined') G[ns] = {};
+    G[ns].Base = {};
 
     /**
         @name T
         @exports T as GNN
         @namespace The root of GNN Library.
     */
-    var T = global[ns];
+    var T = G[ns];
     /**
         @name B
         @exports B as GNN.Base
@@ -21,7 +22,7 @@
     /**
         The global object.
     */
-    B.global = global;
+    B.global = G;
 
     /**
         Looks up fully qualified name <code>fqn</code>
@@ -651,7 +652,7 @@ GNN.Base.fmerge(function(x,y,k) {
     */
     B.fmerge = function(fun, objs) {
         var self = arguments[1];
-        if (self == null) self = {};
+        self = self || {}; fun = fun || function(x, y){ return y; };
         for (var i=2; i < arguments.length; i++) {
             var other = arguments[i];
             if (other == null) continue;
@@ -746,17 +747,16 @@ GNN.Base.dmerge({a:{b:1,c:2},d:{e:3,f:4}},{a:{b:2}});
         @see GNN.Base.addProperties
     */
     B.addProperty = function(obj, name, desc, config) {
-        desc = B.merge(desc, config||{});
-        if ('defineProperty' in obj) {
-            obj.defineProperty(name, desc);
-        } else if ('defineProperty' in Object) {
+        desc = B.merge(null, config||{}, desc);
+        if (B.isDefined(desc.get) || B.isDefined(desc.set)) {
+            delete desc.writable; delete desc.value;
+        }
+        if ('defineProperty' in Object) {
             Object.defineProperty(obj, name, desc);
         } else {
-            if ('get' in desc && '__defineGetter__' in obj) {
-                obj.__defineGetter__(name, desc.get);
-            }
-            if ('set' in desc && '__defineSetter__' in obj) {
-                obj.__defineSetter__(name, desc.set);
+            var func = { get: '__defineGetter__', set: '__defineSetter__' };
+            for (var k in func) {
+                if (k in desc && func[k] in obj) obj[func[k]](name, desc[k]);
             }
         }
         return obj;
@@ -800,7 +800,7 @@ GNN.Base.dmerge({a:{b:1,c:2},d:{e:3,f:4}},{a:{b:2}});
     B.addInterface = function(target, intrfce, override) {
         var fun = override;
         if (!B.isDefined(override)) override = target;
-        if (!B.isCallable(override)) {
+        if (!B.isCallable(fun)) {
             fun = function(a, b, k) { // do not override
                 if (!override.hasOwnProperty(k) ||
                     !B.isDefined(override[k])) {
