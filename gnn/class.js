@@ -1,13 +1,69 @@
-[ 'GNN', function(global) {
+[ 'GNN', function(G) {
     var ns = this.pop();
-    var T = global[ns];
-    var B = T.Base;
+    if (typeof G[ns] == 'undefined') G[ns] = {};
+
+    var T = G[ns];
+    var B = T.Base || {};
+
+    ////////////////////////////////////
+    // internal functions
+
+    var toA = function(a, s, e){ return G.Array.prototype.slice.call(a,s,e); };
+    var isDefined = B.isDefined || function(obj, undef){ return obj!==undef; };
+    var isFun = B.isCallable || function(x){ return typeof x == 'function'; };
+    var isObject = B.isObject || function(x){ return typeof x == 'object'; };
+    var isRef = B.isRef || function(x){ return isFun(x) || isObject(x); };
+    var fmerge = B.fmerge || function(fun, a, b) {
+        a = a || {}; fun = fun || function(x,y){ return y; };
+        for (var p in b) b.hasOwnProperty(p) && (a[p]=fun(a[p],b[p],p)||a[p]);
+        return a;
+    };
+    var merge = B.merge || function(a, b){ return fmerge(null, a, b); };
+    var setProto = B.setProto || function(obj, proto, alt) {
+        alt = alt || function(){};
+        (obj && obj.__proto__ && (obj.__proto__ = proto)) || alt(obj, proto);
+        return obj;
+    };
+    var addProperty = B.addProperty || function(obj, name, d, config) {
+        d = merge(merge(null, config||{}), d);
+        if ('defineProperty' in Object) {
+            Object.defineProperty(obj, name, d);
+        } else {
+            var f = { get: '__defineGetter__', set: '__defineSetter__' };
+            for (var k in f) k in d && f[k] in obj && obj[f[k]](name, d[k]);
+        }
+        return obj;
+    };
+    var addProperties_ = B.addProperties || function(obj, props, config) {
+        for (var k in props) addProperty(obj, k, props[k], config);
+        return obj;
+    };
+    var addProperties = function(obj, props) {
+        return addProperties_(obj, props, { configurable: true });
+    };
+    // TODO: fix GNN.Base.addInterface
+    var addInterface = function(obj, intrfce, override) {
+        var c = override ? function(){return false;} : function(k) {
+            return obj[k] || ((obj.constructor||{}).prototype||{})[k];
+        };
+        var conf = { configurable: true, writable: true };
+        for (var k in intrfce) {
+            if (!intrfce[k] || c(k)) continue;
+            addProperty(obj, k, merge(conf, { value: intrfce[k] }));
+        }
+    };
+
+    ////////////////////////////////////
+    // constants
 
     var SUPERCLASS = '$superclass';
     var SUPER = '$super';
     var Super = {};
 
     var tag = {};
+
+    ////////////////////////////////////
+    // class factory
 
     var C;
     /**
@@ -74,16 +130,16 @@ bar.prod(); // => 200;
     C = T.Class = function Class(init, base) {
         var klass = { members: {}, accessors: {},  cmembers: {}, config: {} };
 
-        if (B.isObject(init)) {
+        if (isObject(init)) {
             var cmembers = init;
             init = cmembers.initialize;
             if ('initialize' in cmembers) delete cmembers.initialize;
-            B.merge(klass.cmembers, cmembers);
+            merge(klass.cmembers, cmembers);
         }
         init = init || function Object(){};
         klass.init = init;
 
-        if (B.isObject(base)) {
+        if (isObject(base)) {
             var config = base;
             base = config.base || config.inherit;
             klass.config = config;
@@ -96,10 +152,10 @@ bar.prod(); // => 200;
                 if (klass.$superFactory) {
                     var $super = klass.$superFactory(self);
                     var intfce = {}; intfce[SUPER] = $super;
-                    B.addInterface(self, intfce, {});
+                    addInterface(self, intfce, true);
                 }
                 var r = klass.init.apply(self, arguments);
-                if (B.isRef(r)) return r;
+                if (isRef(r)) return r;
                 return self;
             }
         };
@@ -107,7 +163,7 @@ bar.prod(); // => 200;
         var update = function(args) {
             if (args) { for (var p in args) klass[p] = args[p]; }
 
-            if (!B.isCallable(klass.init)) {
+            if (!isFun(klass.init)) {
                 throw new TypeError('initializer must be a function');
             }
 
@@ -115,21 +171,22 @@ bar.prod(); // => 200;
             if (klass.base) C.inherit(klass.init, klass.base);
             ctor.prototype = klass.init.prototype;
             ctor[SUPERCLASS] = klass.init[SUPERCLASS];
-            B.addInterface(ctor.prototype, klass.members, {});
-            B.addProperties(ctor.prototype, klass.accessors, {
+            addInterface(ctor.prototype, klass.members, true);
+            addProperties(ctor.prototype, klass.accessors, {
                 configurable: true, writable: true
             });
 
             // class members
-            var cmembers = B.merge(null, klass.cmembers);
+            var cmembers = merge(null, klass.cmembers);
             if (!klass.config.noSuperClassMembers) {
-                var a = C.ancestors(klass.init);
-                B.fmerge.apply(null, [ function(a,b) {
-                    return a || b;
-                }, cmembers ].concat(a));
+                C.ancestors(klass.init).forEach(function(a) {
+                    fmerge(function(a, b) {
+                        return a || b;
+                    }, cmembers, a);
+                });
             }
-            B.merge(ctor, cmembers);
-            B.merge(klass.init, cmembers);
+            merge(ctor, cmembers);
+            merge(klass.init, cmembers);
 
             // $super
             delete klass.$superFactory;
@@ -183,10 +240,10 @@ var Bar = GNN.Class(function(a, b, c) {
 }, Foo).member('sum', function(){ return this.$super.sum() + this.c; });
             */
             member: function(members, rest) {
-                if (typeof members == 'string' && B.isDefined(rest)) {
+                if (typeof members == 'string' && isDefined(rest)) {
                     var m = members; members = {}; members[m] = rest;
                 }
-                members = B.merge(klass.members, members||{});
+                members = merge(klass.members, members||{});
                 return update({ members: members || {} });
             },
             /**
@@ -203,10 +260,10 @@ var Bar = GNN.Class(function(a, b, c) {
                @see Object.defineProperty
             */
             accessor: function(members, rest) {
-                if (typeof members == 'string' && B.isDefined(rest)) {
+                if (typeof members == 'string' && isDefined(rest)) {
                     var m = members; members = {}; members[m] = rest;
                 }
-                members = B.merge(klass.accessors, members||{});
+                members = merge(klass.accessors, members||{});
                 return update({ accessors: members || {} });
             },
             /**
@@ -220,24 +277,29 @@ var Bar = GNN.Class(function(a, b, c) {
                @returns {GNN.Class} this
             */
             classMember: function(members, rest) {
-                if (typeof members == 'string' && B.isDefined(rest)) {
+                if (typeof members == 'string' && isDefined(rest)) {
                     var m = members; members = {}; members[m] = rest;
                 }
-                members = B.merge(klass.cmembers, members||{});
+                members = merge(klass.cmembers, members||{});
                 return update({ cmembers: members });
             }
         };
-        B.merge(ctor, def);
+        merge(ctor, def);
 
         return update();
     };
 
-    C.name = function(klass) {
-        return B.className(B.isCallable(klass) ? klass.prototype : klass);
-    };
+    ////////////////////////////////////
+    // class hierarchy
+
+    if (isDefined(B.className)) {
+        C.name = function(klass) {
+            return B.className(isFun(klass) ? klass.prototype : klass);
+        };
+    }
     C.traits = function(klass) {
         var Traits = function(){};
-        if (B.isCallable(klass)) {
+        if (isFun(klass)) {
             Traits.prototype = klass.prototype;
         } else {
             Traits.prototype = klass;
@@ -256,11 +318,14 @@ var Bar = GNN.Class(function(a, b, c) {
         return r;
     };
 
+    ////////////////////////////////////
+    // super
+
     Super.ctor = function() {
         var klass = this.constructor;
         var base = klass[SUPERCLASS];
         var r = base.apply(this, arguments);
-        if (B.isRef(r)) return r;
+        if (isRef(r)) return r;
         return this;
     };
 
@@ -274,11 +339,11 @@ var Bar = GNN.Class(function(a, b, c) {
             for (var j=0; j < props.length; j++) {
                 (function(prop, fun) {
                     if (prop in desc) return;
-                    if (!B.isCallable(fun)) return;
+                    if (!isFun(fun)) return;
                     desc[prop] = function() {
                         return fun.apply(this.self, arguments);
                     };
-                    B.addInterface(desc[prop], {
+                    addInterface(desc[prop], {
                         call: function(thisp, args) {
                             args = Array.prototype.slice.call(arguments, 1);
                             return fun.apply(thisp, args);
@@ -286,21 +351,21 @@ var Bar = GNN.Class(function(a, b, c) {
                         apply: function(thisp, args) {
                             return fun.apply(thisp, args);
                         }
-                    }, {});
+                    }, true);
                 })(props[j], traits[props[j]]);
             }
         }
 
         var proto = function(){};
-        B.addInterface(proto, desc, {});
+        addInterface(proto, desc, true);
 
         return function(self) {
             var $super = function() {
                 return Super.ctor.apply(this, arguments);
             };
             $super.self = self;
-            B.setProto($super, proto, function(obj) {
-                B.addInterface(obj, desc, {});
+            setProto($super, proto, function(obj) {
+                addInterface(obj, desc, true);
             });
             return $super;
         };
