@@ -26,6 +26,9 @@
     };
     var addProperty = B.addProperty || function(obj, name, d, config) {
         d = merge(merge(null, config||{}), d);
+        if (isDefined(d.get) || isDefined(d.set)) {
+            delete d.writable; delete d.value;
+        }
         if ('defineProperty' in Object) {
             Object.defineProperty(obj, name, d);
         } else {
@@ -34,12 +37,9 @@
         }
         return obj;
     };
-    var addProperties_ = B.addProperties || function(obj, props, config) {
+    var addProperties = B.addProperties || function(obj, props, config) {
         for (var k in props) addProperty(obj, k, props[k], config);
         return obj;
-    };
-    var addProperties = function(obj, props) {
-        return addProperties_(obj, props, { configurable: true });
     };
     var addInterface = B.addInterface || function(obj, intrfce, override) {
         var c = override ? function(){return false;} : function(k) {
