@@ -72,7 +72,7 @@ bar.sum(); // => 60
 bar.prod(); // => 200;
     */
     C = T.Class = function Class(init, base) {
-        var klass = { members: {}, cmembers: {}, config: {} };
+        var klass = { members: {}, accessors: {},  cmembers: {}, config: {} };
 
         if (B.isObject(init)) {
             var cmembers = init;
@@ -116,6 +116,9 @@ bar.prod(); // => 200;
             ctor.prototype = klass.init.prototype;
             ctor[SUPERCLASS] = klass.init[SUPERCLASS];
             B.addInterface(ctor.prototype, klass.members, {});
+            B.addProperties(ctor.prototype, klass.accessors, {
+                configurable: true, writable: true
+            });
 
             // class members
             var cmembers = B.merge(null, klass.cmembers);
@@ -185,6 +188,26 @@ var Bar = GNN.Class(function(a, b, c) {
                 }
                 members = B.merge(klass.members, members||{});
                 return update({ members: members || {} });
+            },
+            /**
+                Sets instance properties.
+                @param {object|string} members
+                   A hash table of property names and values or
+                   a name of a property. See <code>rest</code> for the form
+                   of values of the hash table.
+               @param {*} [rest]
+                   If <code>members</code> specifies a name of a property,
+                   then <code>rest</code> specifies property description of
+                   the property.
+               @returns {GNN.Class} this
+               @see Object.defineProperty
+            */
+            accessor: function(members, rest) {
+                if (typeof members == 'string' && B.isDefined(rest)) {
+                    var m = members; members = {}; members[m] = rest;
+                }
+                members = B.merge(klass.accessors, members||{});
+                return update({ accessors: members || {} });
             },
             /**
                Sets class methods and properties.

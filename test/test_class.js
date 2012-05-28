@@ -30,6 +30,10 @@
         }
         t.is(foo.sum(), 60, n('method'));
         t.is(foo.mul(), 200, n('method'));
+
+        t.is(hoge.greater, 2, n('properties'));
+        t.is(foo.greater, 20, n('properties'));
+        t.is(foo.max, 30, n('properties'));
     };
 
     Tester.run(function(t) {
@@ -38,6 +42,10 @@
         }).member({
             sum: function(){ return this.a+this.b; },
             mul: function(){ return this.a*this.b; }
+        }).accessor({
+            greater: { get: function() {
+                return this.a > this.b ? this.a : this.b;
+            } }
         }).classMember({
             initialize: function(){ return 'initialize'; },
             foo: function(){ return 'hoge'; },
@@ -50,6 +58,11 @@
             sum: function(){
                 return this.a+this.b+this.c;
             }
+        }).accessor({
+            max: { get: function() {
+                var g = this.greater;
+                return g > this.c ? g : this.c;
+            } }
         }).classMember({
             foo: function(){ return 'foo'; }
         }).config({ noSuper: true });
@@ -75,6 +88,10 @@
         }).member({
             sum: function(){ return this.a+this.b; },
             mul: function(){ return this.a*this.b; }
+        }).accessor({
+            greater: { get: function() {
+                return this.a > this.b ? this.a : this.b;
+            } }
         });
 
         var Foo = GNN.Class({
@@ -90,6 +107,11 @@
             sum: function(){
                 return this.a+this.b+this.c;
             }
+        }).accessor({
+            max: { get: function() {
+                var g = this.greater;
+                return g > this.c ? g : this.c;
+            } }
         });
 
         test(t, Hoge, Foo);
@@ -109,6 +131,10 @@
         }).member({
             sum: function(){ return this.a+this.b; },
             mul: function(){ return this.a*this.b; }
+        }).accessor({
+            greater: { get: function() {
+                return this.a > this.b ? this.a : this.b;
+            } }
         }).classMember({
             initialize: function(){ return 'initialize'; },
             foo: function(){ return 'hoge'; },
@@ -121,6 +147,11 @@
             sum: function(){
                 return this.a+this.b+this.c;
             }
+        }).accessor({
+            max: { get: function() {
+                var g = this.greater;
+                return g > this.c ? g : this.c;
+            } }
         }).classMember({
             foo: function(){ return 'foo'; }
         });
@@ -141,6 +172,13 @@
         }).member({
             sum: function(){ return this.a+this.b; },
             mul: function(){ return this.a*this.b; }
+        }).accessor({
+            greater: { get: function() {
+                return this.a > this.b ? this.a : this.b;
+            } },
+            min: { get: function() {
+                return this.a < this.b ? this.a : this.b;
+            } }
         }).classMember({
             initialize: function(){ return 'initialize'; },
             foo: function(){ return 'hoge'; },
@@ -161,6 +199,15 @@
             foo: function(){
                 return this.a * this.b * this.c;
             }
+        }).accessor({
+            max: { get: function() {
+                var g = this.greater;
+                return g > this.c ? g : this.c;
+            } },
+            min: { get: function() {
+                var s = this.a < this.b ? this.a : this.b;
+                return s < this.c ? s : this.c;
+            } }
         }).classMember({
             bar: function(){ return 'BAR'; }
         });
@@ -174,6 +221,7 @@
         t.is(Foo.foo(), 'foo');
         t.is(Foo.bar(), 'BAR');
         t.is(new Foo(10, 20, 30).foo(), 6000);
+        t.is(new Foo(30, 20, 10).min, 10);
     }, 'redefinition');
 
     Tester.run(function(t) {
@@ -183,6 +231,13 @@
             sum: function(){ return this.a+this.b; },
             mul: function(){ return this.a*this.b; },
             join: function(c,d){ return [this.a,this.b,c,d].join('+'); }
+        }).accessor({
+            greater: { get: function() {
+                return this.a > this.b ? this.a : this.b;
+            } },
+            min: { get: function() {
+                return this.a < this.b ? this.a : this.b;
+            } }
         });
 
         var Foo = Class(function FooClass(a,b,c) {
@@ -203,6 +258,15 @@
             sum: function(){
                 return this.a+this.b+this.c;
             }
+        }).accessor({
+            max: { get: function() {
+                var g = this.greater;
+                return g > this.c ? g : this.c;
+            } },
+            min: { get: function() {
+                var s = this.$super.min;
+                return s < this.c ? s : this.c;
+            } }
         });
 
         test(t, Hoge, Foo);
@@ -214,5 +278,6 @@
         t.is(foo.$super.mul(), 200, 'super.method');
         t.is(foo.callJoin(), '5+6+7+8', 'super.method (call)');
         t.is(foo.applyJoin(), '5+6+7+8', 'super.method (apply)');
+        t.is(new Foo(30, 20, 10).min, 10, 'super.prop');
     }, 'super');
 })(GNN.Tester.Base, GNN.Class);
