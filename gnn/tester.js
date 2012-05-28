@@ -1,7 +1,7 @@
-[ 'GNN', function(global) {
+[ 'GNN', function(G) {
     var ns = this.pop();
-    if (typeof global[ns] == 'undefined') global[ns] = {};
-    var T = global[ns];
+    if (typeof G[ns] == 'undefined') G[ns] = {};
+    var T = G[ns];
     var B = T.Base;
 
     /**

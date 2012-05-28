@@ -89,7 +89,6 @@
             instance. <code>this.$super(...)</code> is a super initializer call
             and <code>this.$super.foo(...)</code> is a super method call of
             a method named "foo".</p>
-        @requires GNN.Base
         @example
 var Foo = GNN.Class(function FooClass(a, b) {
     this.a=a; this.b=b;

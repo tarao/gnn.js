@@ -108,12 +108,24 @@ GNN.Array.first([1, 2, 3]); // => 1
     };
 
     // exceptions
+    /**
+        Indicates invalid arguments.
+        @class An error indicating invalid arguments.
+        @param {string} msg
+            An error message.
+    */
     A.ArgumentError = function(msg) {
         this.name = 'ArgumentError';
         this.message = msg || '';
     };
     A.ArgumentError.prototype = new Error();
     A.ArgumentError.prototype.constructor = A.ArgumentError;
+    /**
+        Indicates index out of range.
+        @class An error indicating index out of range.
+        @param {string} msg
+            An error message.
+    */
     A.IndexError = function(msg) {
         this.name = 'IndexError';
         this.message = msg || '';

@@ -71,7 +71,6 @@
             are also available as static methods in <code>GNN.Hash</code> with
             taking the first argument as an array. In this form, an object
             can be used as a hash.</p>
-        @requires GNN.Base
         @example
 new GNN.Hash({a:1, b:2, c:3});
 // => Hash {a: 1, b:2, c:3}
@@ -102,6 +101,12 @@ new GNN.Hash('a', 1, 'b', 2, 'c', 3);
     };
 
     // exceptions
+    /**
+        Indicates index out of range.
+        @class An error indicating index out of range.
+        @param {string} msg
+            An error message.
+    */
     H.IndexError = function(msg) {
         this.name = 'IndexError';
         this.message = msg || '';
@@ -322,7 +327,7 @@ GNN.Hash({ a:1, b:2, c:3 }).merge({ a:3 }, { d:4, e:5, c:4 }, { f:6, e:8 });
         */
         merge: function(objs) {
             var o = {};
-            fun = function(x, y){ return y; };
+            var fun = function(x, y){ return y; };
             objs = [this].concat(toA(arguments));
             for (var i=0; i < objs.length; i++) {
                 var other = objs[i];
