@@ -781,42 +781,22 @@ GNN.Base.dmerge({a:{b:1,c:2},d:{e:3,f:4}},{a:{b:2}});
         @param {object} obj
         @param {object} intrfce
             A map from property name to a value.
-        @param {object|function} [override]
-            An overriding information.
+        @param {boolean} [override]
+            Whether a property in <code>intrfce</code> overrides that of
+            <code>obj</code>.
         @description
             It adds properties of values. The properties are set to be
             configurable and writable.
-
-            <p><code>override</code> specifies whether existing properties
-            are overrided or not. If <code>override</code> is a function and
-            <code>override(null, intrfce[p], p)</code> returns a value,
-            the property <code>p</code> is overrided by the return value.
-            If <code>override</code> is an object and <code>override[p]</code>
-            is undefined, the property <code>p</code>
-            is overrided by <code>intrfce[p]</code>.
-            If <code>override</code> is omitted, then nothing is overrided.</p>
         @see GNN.Base.addProperty
     */
-    B.addInterface = function(target, intrfce, override) {
-        var fun = override;
-        if (!B.isDefined(override)) override = target;
-        if (!B.isCallable(fun)) {
-            fun = function(a, b, k) { // do not override
-                if (!override.hasOwnProperty(k) ||
-                    !B.isDefined(override[k])) {
-                    return b;
-                }
-            };
+    B.addInterface = function(obj, intrfce, override) {
+        var c = override ? function(){return false;} : function(k) {
+            return obj[k] || ((obj.constructor||{}).prototype||{})[k];
+        };
+        var conf = { configurable: true, writable: true };
+        for (var k in intrfce) {
+            if (!intrfce[k] || c(k)) continue;
+            B.addProperty(obj, k, B.merge(conf, { value: intrfce[k] }));
         }
-        B.fmerge(function(a, b, k) {
-            b = fun(a, b, k);
-            if (b) {
-                B.addProperty(target, k, {
-                    configurable: true,
-                    writable: true,
-                    value: b
-                });
-            }
-        }, null, intrfce);
     };
 } ].reverse()[0](this);

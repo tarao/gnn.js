@@ -40,7 +40,7 @@
     var addProperties = function(obj, props) {
         return addProperties_(obj, props, { configurable: true });
     };
-    var addInterface = function(obj, intrfce, override) {
+    var addInterface = B.addInterface || function(obj, intrfce, override) {
         var c = override ? function(){return false;} : function(k) {
             return obj[k] || ((obj.constructor||{}).prototype||{})[k];
         };
