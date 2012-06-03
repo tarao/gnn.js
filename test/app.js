@@ -1,7 +1,13 @@
+if (typeof TESTS == 'undefined') var TESTS = [];
+
 var runTests = function(result, frames) {
+    var filter;
+    if (/#(.+)$/.test(location.href)) filter = RegExp.$1.split(',');
+
+    var text = function(node){ return node.textContent||node.innerText; };
     var prefix = {
-        include: '../gnn',
-        run:   '.'
+        include: text(document.getElementById('prefix-include')||{}) || '.',
+        run: text(document.getElementById('prefix-run')||{}) || '.'
     };
     result = document.getElementById(result);
     frames = document.getElementById(frames);
@@ -66,7 +72,20 @@ var runTests = function(result, frames) {
     };
     var details = {};
 
-    new GNN.Tester(prefix, TESTS, frames, {
+    var tests = TESTS;
+    if (filter) {
+        tests = tests.filter(function(t) {
+            return filter.every(function(r) {
+                var fun = function(x){ return x; };
+                if (r.substr(0, 1) == '-') {
+                    r = r.substr(1);
+                    fun = function(x){ return !x; };
+                }
+                return fun(new RegExp(r, 'i').test(t.id));
+            });
+        });
+    }
+    new GNN.Tester(prefix, tests, frames, {
         begin: function(t) {
             var src = t.run;
             if (!(src instanceof Array)) src = [ src ];
