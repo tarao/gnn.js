@@ -15,7 +15,11 @@
     var isRef = B.isRef || function(x){ return isFun(x) || isObject(x); };
     var fmerge = B.fmerge || function(fun, a, b) {
         a = a || {}; fun = fun || function(x,y){ return y; };
-        for (var p in b) b.hasOwnProperty(p) && (a[p]=fun(a[p],b[p],p)||a[p]);
+        for (var p in b) {
+            if (!b.hasOwnProperty(p)) continue;
+            var v = fun(a[p], b[p], p);
+            if (isDefined(v)) a[p] = v;
+        }
         return a;
     };
     var merge = B.merge || function(a, b){ return fmerge(null, a, b); };
@@ -37,6 +41,10 @@
         }
         return obj;
     };
+    var addValue = function(obj, name, val, config) {
+        config = merge({ configurable: true }, config||{});
+        addProperty(obj, name, { value: val }, config);
+    };
     var addProperties = B.addProperties || function(obj, props, config) {
         for (var k in props) addProperty(obj, k, props[k], config);
         return obj;
@@ -51,15 +59,31 @@
             addProperty(obj, k, merge(conf, { value: intrfce[k] }));
         }
     };
+    if (Object.getOwnPropertyDescriptor) {
+        var getPropertyDesc = function(obj, prop) {
+            return Object.getOwnPropertyDescriptor(obj, prop);
+        };
+    } else {
+        var getPropertyDesc = function() {
+            return {};
+        };
+    }
 
     ////////////////////////////////////
     // constants
 
     var SUPERCLASS = '$superclass';
     var SUPER = '$super';
-    var Super = {};
-
+    var CLASS = '$class';
+    var Super = { INTERNAL: '$_', USE_PROXY: true };
     var tag = {};
+
+    var getCallSiteClass = function(func) {
+        return func && func.caller && func.caller[CLASS];
+    };
+    var setCallSiteClass = function(func, klass) {
+        if (isFun(func) && !func[CLASS]) addValue(func, CLASS, klass);
+    };
 
     ////////////////////////////////////
     // class factory
@@ -147,10 +171,8 @@ bar.prod(); // => 200;
         var ctor = function(t) {
             if (t !== tag) {
                 var self = (this instanceof ctor) ? this : new ctor(tag);
-                if (klass.$superFactory) {
-                    var $super = klass.$superFactory(self);
-                    var intfce = {}; intfce[SUPER] = $super;
-                    addInterface(self, intfce, true);
+                if (klass.Super) { // make $super
+                    addProperty(self, SUPER, new klass.Super(self));
                 }
                 var r = klass.init.apply(self, arguments);
                 if (isRef(r)) return r;
@@ -168,7 +190,7 @@ bar.prod(); // => 200;
             // inheritance
             if (klass.base) C.inherit(klass.init, klass.base);
             ctor.prototype = klass.init.prototype;
-            ctor[SUPERCLASS] = klass.init[SUPERCLASS];
+            addValue(ctor, SUPERCLASS, C.superclass(klass.init));
             addInterface(ctor.prototype, klass.members, true);
             addProperties(ctor.prototype, klass.accessors, {
                 configurable: true, writable: true
@@ -178,7 +200,7 @@ bar.prod(); // => 200;
             var cmembers = merge(null, klass.cmembers);
             if (!klass.config.noSuperClassMembers) {
                 C.ancestors(klass.init).forEach(function(a) {
-                    fmerge(function(a, b) {
+                    fmerge(function(a, b, k) {
                         return a || b;
                     }, cmembers, a);
                 });
@@ -187,9 +209,26 @@ bar.prod(); // => 200;
             merge(klass.init, cmembers);
 
             // $super
-            delete klass.$superFactory;
+            delete klass.Super;
             if (klass.base && !klass.config.noSuper) {
-                klass.$superFactory = Super.factory(klass.init, klass.base);
+                // put class to each function
+                var proto = ctor.prototype;
+                toA(Object.getOwnPropertyNames(proto)).forEach(function(p) {
+                    var desc = getPropertyDesc(proto, p);
+                    var funs = [];
+                    if (desc.get || desc.set) {
+                        funs.push(desc.get, desc.set);
+                    } else {
+                        try {
+                            funs.push(proto[p]);
+                        } catch (e) { /* ignore */ }
+                    }
+                    funs.forEach(function(f){ setCallSiteClass(f, ctor); });
+                });
+                setCallSiteClass(klass.init, ctor);
+
+                // function to make $super for each instance
+                klass.Super = Super.factory(klass.init);
             }
 
             return ctor;
@@ -197,10 +236,10 @@ bar.prod(); // => 200;
 
         var def = /** @lends C.prototype */ {
             /**
-               Sets initializer.
-               @param {function} init
-               @returns {GNN.Class} this
-               @example
+                Sets initializer.
+                @param {function} init
+                @returns {GNN.Class} this
+                @example
 var Foo = GNN.Class().initializer(function(a, b) {
     this.a=a; this.b=b;
 }).member({
@@ -210,11 +249,11 @@ var Foo = GNN.Class().initializer(function(a, b) {
             */
             initializer: function(init){ return update({ init: init }); },
             /**
-               Sets base class.
-               @param {GNN.Class|function} base
-                   A class or a constructor.
-               @returns {GNN.Class} this
-               @example
+                Sets base class.
+                @param {GNN.Class|function} base
+                    A class or a constructor.
+                @returns {GNN.Class} this
+                @example
 var Bar = GNN.Class(function(a, b, c) {
     this.$super(a, b); this.c=c;
 }).inherits(Foo).member({
@@ -224,15 +263,15 @@ var Bar = GNN.Class(function(a, b, c) {
             inherits: function(base){ return update({ base: base }); },
             config: function(config){ return update({ config: config }) },
             /**
-               Sets instance methods and properties.
-               @param {object|string} members
-                   A hash table of property names and values or
-                   a name of a property.
-               @param {*} [rest]
-                   If <code>members</code> specifies a name of a property,
-                   then <code>rest</code> specifies a value of the property.
-               @returns {GNN.Class} this
-               @example
+                Sets instance methods and properties.
+                @param {object|string} members
+                    A hash table of property names and values or
+                    a name of a property.
+                @param {*} [rest]
+                    If <code>members</code> specifies a name of a property,
+                    then <code>rest</code> specifies a value of the property.
+                @returns {GNN.Class} this
+                @example
 var Bar = GNN.Class(function(a, b, c) {
     this.$super(a, b); this.c=c;
 }, Foo).member('sum', function(){ return this.$super.sum() + this.c; });
@@ -265,14 +304,14 @@ var Bar = GNN.Class(function(a, b, c) {
                 return update({ accessors: members || {} });
             },
             /**
-               Sets class methods and properties.
-               @param {object|string} members
-                   A hash table of property names and values or
-                   a name of a property.
-               @param {*} [rest]
-                   If <code>members</code> specifies a name of a property,
-                   then <code>rest</code> specifies a value of the property.
-               @returns {GNN.Class} this
+                Sets class methods and properties.
+                @param {object|string} members
+                    A hash table of property names and values or
+                    a name of a property.
+                @param {*} [rest]
+                    If <code>members</code> specifies a name of a property,
+                    then <code>rest</code> specifies a value of the property.
+                @returns {GNN.Class} this
             */
             classMember: function(members, rest) {
                 if (typeof members == 'string' && isDefined(rest)) {
@@ -291,10 +330,66 @@ var Bar = GNN.Class(function(a, b, c) {
     // class hierarchy
 
     if (isDefined(B.className)) {
-        C.name = function(klass) {
+        /**
+            Returns the name of the given class (or function).
+            @param {GNN.Class|function|object} klass
+            @returns {string}
+            @see GNN.Base.className
+        */
+        C.className = function(klass) {
             return B.className(isFun(klass) ? klass.prototype : klass);
         };
     }
+    if (Object.getPrototypeOf) {
+        /**
+            Returns <code>__proto__</code> of the given object.
+            @param {object} obj
+            @returns {object}
+            @see GNN.Base.setProto
+        */
+        C.proto = function(obj) {
+            return Object.getPrototypeOf(obj);
+        };
+    } else {
+        C.proto = function(obj) {
+            return obj.__proto__;
+        };
+    }
+    /**
+        Returns a superclass of the given class (or function).
+        @param {GNN.Class|function} klass
+        @returns {function}
+    */
+    C.superclass = function(klass) {
+        var sp = klass[SUPERCLASS];
+        if (sp) return sp;
+
+        var proto = C.proto(klass.prototype);
+        return proto && proto.constructor;
+    };
+    /**
+        Returns ancestors of the given class (or function).
+        @param {GNN.Class|function} klass
+            A class or a function whose inheritance hierarchy is made
+            by <a href="#.inherit"><code>GNN.Class.inherit</code></a>.
+        @returns {function[]}
+    */
+    C.ancestors = function(klass) {
+        var r = [];
+        while (klass=C.superclass(klass)) r.push(klass);
+        return r;
+    };
+    /**
+        Returns a new object which has an object of the given class
+        (function) as its <code>__proto__</code>.
+        @description
+            Intuitively, it returns an object which has all traits of
+            the given class but nothing else.
+        @param {function|object} klass
+            If <code>klass</code> is an object, then it is used as
+            <code>__proto__</code> of the new object.
+        @returns {object}
+    */
     C.traits = function(klass) {
         var Traits = function(){};
         if (isFun(klass)) {
@@ -304,68 +399,188 @@ var Bar = GNN.Class(function(a, b, c) {
         }
         return new Traits();
     };
+    /**
+        Sets the given class (function) as a base class.
+        @param {function} klass
+        @param {function|object} base
+            If <code>klass</code> is an object, then it is used as
+            <code>__proto__</code> of <code>prototype</code> of the returned
+            class.
+        @returns {function}
+        @see GNN.Class.traits
+    */
     C.inherit = function(klass, base) {
         klass.prototype = C.traits(base);
-        klass[SUPERCLASS] = klass.prototype.constructor;
+        addValue(klass, SUPERCLASS, klass.prototype.constructor);
         klass.prototype.constructor = klass;
         return klass;
     };
-    C.ancestors = function(klass) {
-        var r = [];
-        while (klass=klass[SUPERCLASS]) r.push(klass);
-        return r;
-    };
 
     ////////////////////////////////////
-    // super
+    // $super
 
-    Super.ctor = function() {
-        var klass = this.constructor;
-        var base = klass[SUPERCLASS];
-        var r = base.apply(this, arguments);
-        if (isRef(r)) return r;
-        return this;
-    };
+    Super.factory = function(klass) {
+        var INTERNAL = Super.INTERNAL;
+        var USE_PROXY = Super.USE_PROXY && (typeof Proxy != 'undefined');
 
-    Super.factory = function(klass, base) {
-        var desc = {};
-        var traits = C.traits(base);
-        var a = C.ancestors(klass);
-        for (var i=0; i < a.length; i++) {
-            var proto = a[i].prototype;
-            var props = Object.getOwnPropertyNames(proto);
-            for (var j=0; j < props.length; j++) {
-                (function(prop, fun) {
-                    if (prop in desc) return;
-                    if (!isFun(fun)) return;
-                    desc[prop] = function() {
-                        return fun.apply(this.self, arguments);
-                    };
-                    addInterface(desc[prop], {
-                        call: function(thisp, args) {
-                            args = Array.prototype.slice.call(arguments, 1);
-                            return fun.apply(thisp, args);
-                        },
-                        apply: function(thisp, args) {
-                            return fun.apply(thisp, args);
-                        }
-                    }, true);
-                })(props[j], traits[props[j]]);
+        // function to look up property descriptor in the class hierarchy
+        var lookup = function(klass, prop) {
+            // We need to look up superclasses one by one because we
+            // don't have a function to get property descripter with
+            // looking up the prototype chain. Otherwise, only thing
+            // we can do is to get the property directly by
+            // klass.prototype[prop] but this isn't good since it
+            // invokes getter function of prop, which needs receiver
+            // binding.
+            for (; klass; klass = C.superclass(klass)) {
+                var proto = (klass||{}).prototype;
+                var d = proto && getPropertyDesc(proto, prop);
+                if (d) return { desc: d, proto: proto };
             }
+        };
+
+        var makeCallApply = function(fun) {
+            return { call: function(thisp) {
+                return fun.apply(thisp, toA(arguments, 1));
+            }, apply: function(thisp, args) {
+                return fun.apply(thisp, args);
+            } };
+        };
+
+        // proxy handler
+        var handler = function(self) {
+            return { get: function(rcvr, name) {
+                rcvr = self || this;
+                if (name === 'call' || name === 'apply') {
+                    return makeCallApply(rcvr)[name];
+                }
+                var r = lookup(rcvr[INTERNAL].klass, name);
+                if (!r) return;
+                if (isFun(r.desc.get)) {
+                    return r.desc.get.call(rcvr[INTERNAL].self);
+                } else if (isFun(r.proto[name])) {
+                    var fun = r.proto[name];
+                    var bind = function() {
+                        return fun.apply(rcvr[INTERNAL].self, arguments);
+                    };
+                    addInterface(bind, makeCallApply(fun), true);
+                    return bind;
+                } else {
+                    return r.proto[name];
+                }
+            }, set: function(rcvr, name, val) {
+                rcvr = self || this;
+                var r = lookup(rcvr[INTERNAL].klass, name);
+                if (!r) return false;
+                if (isFun(r.desc.set)) {
+                    r.desc.set.call(rcvr[INTERNAL].self, val);
+                    return true;
+                } else if (r.desc.writable) {
+                    r.proto[name] = val;
+                    return true;
+                } else {
+                    return false;
+                }
+            }, has: function(name) {
+                return !!lookup((self||this)[INTERNAL].klass, name);
+            } };
+        };
+
+        var desc = {};
+        var proto;
+
+        if (!USE_PROXY) {
+            handler = handler(null);
+
+            // collect all properties
+            var props = [];
+            [klass].concat(C.ancestors(klass)).forEach(function(a) {
+                var proto = a.prototype;
+                props = props.concat(toA(Object.getOwnPropertyNames(proto)));
+            });
+
+            // make property descriptors
+            props.forEach(function(p) {
+                desc[p] = { get: function() {
+                    return handler.get.call(this, this, p);
+                }, set: function(val) {
+                    return handler.set.call(this, this, p, val);
+                } };
+            });
+
+            proto = function(){}; // this must be a function or otherwise
+                                  // $super cannot be .call
+            addProperties(proto, desc);
         }
 
-        var proto = function(){};
-        addInterface(proto, desc, true);
-
         return function(self) {
-            var $super = function() {
-                return Super.ctor.apply(this, arguments);
+            /**
+                Accessor to the constructor and properties of superclass.
+                @name GNN.Class#$super
+                @type function
+                @description
+                    Inside a method of an instance of a class defined by
+                    <code>GNN.Class</code>,
+                    <code>this.$super</code> refers to the constructor
+                    of the superclass and <code>this.$super.method</code>
+                    refers to a method named <code>method</code> in the
+                    superclass(es).
+                    <code>this.$super</code> is not accessible from outside
+                    the method.
+
+                    <p>Methods in which <code>this.$super</code> is used must
+                    be added to the class via
+                    <a href="#member"><code>member</code></a> or
+                    <a href="#accessor"><code>accessor</code></a>.
+                    This because we need to know static type information of
+                    <code>this.$super</code> and this is done by binding
+                    class information to the method.</p>
+
+                    <p>Methods added to a superclass after the call of
+                    <a href="#inherits">inherits</a> method on the subclass
+                    are normally inaccessible via
+                    <code>this.$super.method</code> in a method of the
+                    subclass. <code>this.$super</code> is designed to lift
+                    this restriction if Proxy API of ECMAScript Harmony is
+                    available.</p>
+                @see GNN.Class
+            */
+            var getSuper = function() {
+                // We prepare ctor and proxies every time this.$super
+                // is called since we want ctor[INTERNAL].klass to be
+                // local to this.$super call. Otherwise, binding
+                // $super and calling another this.$super may
+                // override ctor[INTERNAL].klass of the first $super.
+                var $super;
+                var ctor = function() {
+                    klass = ctor[INTERNAL].klass;
+                    var r = klass.apply(this, arguments);
+                    if (isRef(r)) return r;
+                    return this;
+                };
+                addProperty(ctor, INTERNAL, { value: {} });
+                ctor[INTERNAL].self = self;
+
+                var callerClass = getCallSiteClass(getSuper);
+                if (callerClass) {
+                    ctor[INTERNAL].klass = C.superclass(callerClass);
+                } else {
+                    var msg = SUPER+' is called in illegal context';
+                    throw new TypeError(msg);
+                }
+
+                if (USE_PROXY) {
+                    $super = Proxy.createFunction(handler(ctor), ctor);
+                } else {
+                    $super = ctor;
+                    setProto($super, proto, function(obj) {
+                        addProperties(obj, desc);
+                    });
+                }
+
+                return $super;
             };
-            $super.self = self;
-            setProto($super, proto, function(obj) {
-                addInterface(obj, desc, true);
-            });
-            return $super;
+            return { get: getSuper };
         };
     };
 } ].reverse()[0](this);
