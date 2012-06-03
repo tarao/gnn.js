@@ -11,7 +11,9 @@ var runTests = function(result, frames) {
         initial: document.getElementById('log_test_runner')
     };
 
-    log.initial.appendChild(document.createTextNode('done'));
+    if (log.initial) {
+        log.initial.appendChild(document.createTextNode('done'));
+    }
 
     var table = document.createElement('table');
     table.className = 'summary';
@@ -80,6 +82,7 @@ var runTests = function(result, frames) {
             div2.appendChild(document.createTextNode('['+src.join(', ')+']'));
             li.appendChild(div2);
             log.parent.appendChild(li);
+            log.parent.scrollTop = log.parent.scrollHeight;
             log[t.id] = { li: li, msg: logMsg };
         },
         progress: function(t, passed, detail) {

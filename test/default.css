@@ -100,6 +100,22 @@ p
    background-color: transparent;
 }
 
+ul#log
+{
+   font-family: monospace;
+   background-color: black;
+   color: white;
+   border: solid 4px #999999;
+   height: 10em;
+   overflow-y: scroll;
+   padding: 0.5em 1em;
+}
+
+ul#log li
+{
+   list-style-type: none;
+}
+
 ul#log li div.message
 {
 }
