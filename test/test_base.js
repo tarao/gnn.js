@@ -484,7 +484,7 @@
 
         t.isDeeply(B.merge({a:{b:1,c:2},d:{e:3,f:4}},{a:{b:2}}),
                    {a:{b:2},d:{e:3,f:4}});
-    });
+    }, 'merge');
 
     Tester.run(function(t) {
         t.isDeeply(B.dmerge(null, {a:1,b:2}), {a:1,b:2});
@@ -502,7 +502,7 @@
 
         t.isDeeply(B.dmerge({a:{b:1,c:2},d:{e:3,f:4}},{a:{b:2}}),
                    {a:{b:2,c:2},d:{e:3,f:4}});
-    });
+    }, 'dmerge');
 
     Tester.run(function(t) {
         t.isDeeply(B.fmerge(function(x,y,k) {
@@ -536,7 +536,7 @@
             return x || y;
         }, {a:{b:1,c:2},d:{e:3,f:4}},{a:{b:2}}),
                    {a:{b:1,c:2},d:{e:3,f:4}});
-    });
+    }, 'fmerge');
 
     Tester.run(function(t) {
         var Klass = function() {
