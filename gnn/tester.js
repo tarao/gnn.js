@@ -292,7 +292,7 @@ Tester.run(function(t) {
                     } catch (err) {
                         e=err;
                     }
-                    B.isA(e, exc, name);
+                    this.isa(e, exc, name);
                 },
                 /**
                     Assertion that the function throws nothing.
@@ -320,7 +320,11 @@ Tester.run(function(t) {
 
                 // utility
                 pp: function(val) {
-                    return B.pp(val, {object:{name:1},cyclic:{detail:1}});
+                    var isECMAObject = B.isECMAObject;
+                    B.isECMAObject = B._isECMAObjectInFrame;
+                    var str = B.pp(val, {object:{name:1},cyclic:{detail:1}});
+                    B.isECMAObject = isECMAObject;
+                    return str;
                 }
             };
         };
@@ -330,8 +334,16 @@ Tester.run(function(t) {
         var setup = function(w, d, parent) {
             var t = parent.t;
             d.body.appendChild(d.createTextNode(t.id));
-            w.Tester = new TestHandler(parent);
+            w.Tester = t.tester = new TestHandler(parent);
             w.Tester.Base = B;
+            B._isECMAObject = B.isECMAObject;
+            B._isECMAObjectInFrame = function(obj) {
+                if (B._isECMAObject(obj)) return true;
+                if (!B.isObject(obj)) return false;
+                if (!(obj instanceof w.Object)) return false;
+                if (obj instanceof w.Node) return false;
+                return true;
+            };
             w.GNN = { Tester: w.Tester };
 
             var head = d.getElementsByTagName('head')[0];

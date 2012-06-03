@@ -25,7 +25,7 @@ var runTests = function(result, frames) {
     }
     result.appendChild(table);
 
-    var showDetails = function(parent, details) {
+    var showDetails = function(parent, details, pp) {
         var testcase = document.createElement('dl');
         testcase.className = 'testcase';
         for (var i=0; i < details.length; i++) {
@@ -48,9 +48,7 @@ var runTests = function(result, frames) {
                     var th = document.createElement('th');
                     th.appendChild(document.createTextNode(labels[j]));
                     var td = document.createElement('td');
-                    var val = GNN.Base.pp(d[labels[j]], {
-                        object:{name:1},cyclic:{detail:1}
-                    });
+                    var val = pp(d[labels[j]]);
                     var pre = document.createElement('pre');
                     pre.appendChild(document.createTextNode(val));
                     td.appendChild(pre);
@@ -143,7 +141,7 @@ var runTests = function(result, frames) {
             var detail = document.createElement('td');
             detail.setAttribute('colspan', 2);
             tr2.appendChild(detail);
-            showDetails(detail, details[t.id])
+            showDetails(detail, details[t.id], t.tester.pp)
 
             table.appendChild(tr1);
             table.appendChild(tr2);
