@@ -557,6 +557,36 @@ GNN.Array(1, 2, 3, 4, 5, 6).find(function(x){return x%2==0;});
             return ifnone;
         },
         /**
+            Finds the first element satisfies the given condition and
+            returns the index of the element.
+            @param {function} [fun=function(x){return x===obj;}]
+                The conditional function of the form
+                <code>function(v, i, a){ ... }</code>
+                where <code>v</code> is the element,
+                <code>i</code> is the index of the element, and
+                <code>a</code> is the array.
+            @returns {number}
+                The index of the element if it is found.
+                <code>-1</code> otherwise.
+            @see GNN.Array#find
+            @example
+GNN.Array(1, 2, 3, 4, 5, 6).findIndex(function(x){return x%2==0;});
+// => 1
+        */
+        findIndex: function(fun) {
+            var o = this;
+            var len = o.length >>> 0;
+            if (typeof fun != "function") {
+                var obj = fun;
+                /** @ignore */
+                fun = function(x){ return x === obj; };
+            }
+            for (var i=0; i < len; i++) {
+                if (i in o && fun.call(null, o[i], i, o)) return i;
+            }
+            return -1;
+        },
+        /**
             Finds the last element satisfies the given condition and
             returns the element.
             @param {function|object} fun
@@ -591,6 +621,153 @@ GNN.Array(1, 2, 3, 4, 5, 6).findLast(function(x){return x%2==0;});
             return ifnone;
         },
         /**
+            Finds the last element satisfies the given condition and
+            returns the index of the element.
+            @param {function} [fun=function(x){return x===obj;}]
+                The conditional function of the form
+                <code>function(v, i, a){ ... }</code>
+                where <code>v</code> is the element,
+                <code>i</code> is the index of the element, and
+                <code>a</code> is the array.
+            @returns {number}
+                The index of the element if it is found.
+                <code>-1</code> otherwise.
+            @see GNN.Array#findLast
+            @example
+GNN.Array(1, 2, 3, 4, 5, 6).findLastIndex(function(x){return x%2==0;});
+// => 5
+        */
+        findLastIndex: function(fun) {
+            var o = this;
+            var len = o.length >>> 0;
+            if (typeof fun != "function") {
+                var obj = fun;
+                /** @ignore */
+                fun = function(x){ return x === obj; };
+            }
+            for (var i=len-1; 0 <= i; i--) {
+                if (i in o && fun.call(null, o[i], i, o)) return i;
+            }
+            return -1;
+        },
+        /**
+            Returns the number of items that statisfy the condition.
+            @param {function|*} [fun]
+                If <code>fun</code> is an object,
+                <code>function(v,i){return v===fun;}</code> is used as a
+                conditional function.
+                Otherwise, <code>fun</code> is the conditional function of
+                the form
+                <code>function(v, i, a){ ... }</code>
+                where <code>v</code> is the element,
+                <code>i</code> is the index of the element, and
+                <code>a</code> is the array.
+            @returns {number}
+            @description
+                It returns the length of the array if <code>fun</code>
+                is omitted.
+            @example
+GNN.Array(1, 2, 3, 4, 5, 6).count(function(x){return x%2==0;});
+// => 3
+GNN.Array(1, 1, 4, 7, 3, 6).count(1);
+// => 2
+GNN.Array(1, 1, 4, 7, 3, 6).count();
+// => 6
+        */
+        count: function(fun) {
+            if (!isDefined(fun)) return this.length;
+            if (!isFun(fun)) {
+                var obj = fun;
+                /** @ignore */
+                fun = function(item){ return obj === item; };
+            }
+            return A.filter(this, fun).length;
+        },
+        /**
+            Returns the minimum element.
+            @param {function} [fun]
+                Specifies a function that defines the order of the elements.
+                If it is omitted, the lexicographical order function is used.
+                The form of the function is
+                <code>function(a, b){ ... }</code>
+                and returns a number less than 0 if <code>a</code> has
+                a lower ordering, greater than 0 if <code>b</code> has
+                a lower ordering, 0 otherwise.
+            @returns {*}
+            @description
+                The complexity is O(n) where n is the length of the array.
+            @see Array#sort
+            @example
+GNN.Array(1, 2, 3, 4, 5, 6).min();
+// => 1
+GNN.Array(9, 3, 4, 7, 3, 6).min(function(a, b){return a%5 - b%5;});
+// => 6
+        */
+        min: function(fun) {
+            var v = A.first(this);
+            A.forEach(toA(this, 1), function(item) {
+                v = [ v, item ].sort(fun)[0];
+            });
+            return v;
+        },
+        /**
+            Returns the maximum element.
+            @param {function} [fun]
+                Specifies a function that defines the order of the elements.
+                If it is omitted, the lexicographical order function is used.
+                The form of the function is
+                <code>function(a, b){ ... }</code>
+                and returns a number less than 0 if <code>a</code> has
+                a lower ordering, greater than 0 if <code>b</code> has
+                a lower ordering, 0 otherwise.
+            @returns {*}
+            @description
+                The complexity is O(n) where n is the length of the array.
+            @see Array#sort
+            @example
+GNN.Array(1, 2, 3, 4, 5, 6).max();
+// => 6
+GNN.Array(1, 1, 4, 7, 3, 6).max(function(a, b){return a%5 - b%5;});
+// => 4
+        */
+        max: function(fun) {
+            var v = A.first(this);
+            A.forEach(toA(this, 1), function(item) {
+                v = [ v, item ].sort(fun)[1];
+            });
+            return v;
+        },
+        /**
+            Returns the minimum and maximum element.
+            @param {function} [fun]
+                Specifies a function that defines the order of the elements.
+                If it is omitted, the lexicographical order function is used.
+                The form of the function is
+                <code>function(a, b){ ... }</code>
+                and returns a number less than 0 if <code>a</code> has
+                a lower ordering, greater than 0 if <code>b</code> has
+                a lower ordering, 0 otherwise.
+            @returns {*[]}
+                an array of the minimum and maximum element in this order.
+            @description
+                The complexity is O(n) where n is the length of the array.
+            @see Array#sort
+            @example
+GNN.Array(1, 2, 3, 4, 5, 6).minmax();
+// => [ 1, 6 ]
+GNN.Array(9, 3, 4, 7, 3, 6).min(function(a, b){return a%5 - b%5;});
+// => [ 6, 4 ]
+        */
+        minmax: function(fun) {
+            var min = A.first(this);
+            var max = min;
+            A.forEach(toA(this, 1), function(item) {
+                min = [ min, item ].sort(fun)[0];
+                max = [ max, item ].sort(fun)[1];
+            });
+            return [ min, max ];
+        },
+        /**
             Makes a new hash table grouping the elements of the array
             by keys returned by the given function.
             @param {function} fun
@@ -622,6 +799,66 @@ GNN.Array(1, 2, 3, 4, 5, 6).groupBy(function(x){return x%3;});
             return rv;
         },
         /**
+            Takes elements while the given condition is satisfied
+            and returns a new array of the elements.
+            @param {function} [fun=function(x){return x===obj;}]
+                The conditional function of the form
+                <code>function(v, i, a){ ... }</code>
+                where <code>v</code> is the element,
+                <code>i</code> is the index of the element, and
+                <code>a</code> is the array.
+            @param {object} [thisp=null]
+                The object to use as <code>this</code> when calling
+                <code>fun</code>.
+            @returns {GNN.Array}
+            @example
+GNN.Array(4, 2, 3, 4, 5, 6).take(function(x){return x%2==0;});
+// => [4, 2]
+        */
+        take: function(fun, thisp) {
+            if (!isFun(fun)) {
+                var obj = fun;
+                /** @ignore */
+                fun = function(v){ return obj===v; };
+            }
+            var r = [];
+            A.every(this, function(v, i, a) {
+                var b = fun.call(thisp, v, i, a);
+                if (b) r.push(v);
+                return b;
+            });
+            return r;
+        },
+        /**
+            Makes a new array and drops elements while the given condition
+            is satisfied and returns the array.
+            @param {function} [fun=function(x){return x===obj;}]
+                The conditional function of the form
+                <code>function(v, i, a){ ... }</code>
+                where <code>v</code> is the element,
+                <code>i</code> is the index of the element, and
+                <code>a</code> is the array.
+            @param {object} [thisp=null]
+                The object to use as <code>this</code> when calling
+                <code>fun</code>.
+            @returns {GNN.Array}
+            @example
+GNN.Array(4, 2, 3, 4, 5, 6).drop(function(x){return x%2==0;});
+// => [3, 4, 5, 6]
+        */
+        drop: function(fun, thisp) {
+            if (!isFun(fun)) {
+                var obj = fun;
+                /** @ignore */
+                fun = function(v){ return obj===v; };
+            }
+            var i = A.findIndex(this, function(v, i, a) {
+                return !fun.call(thisp, v, i, a)
+            });
+            if (i < 0) return [];
+            return toA(this, i);
+        },
+        /**
             Returns a new flat array with all the elements of the array
             including those of nseted arrays.
             @returns {GNN.Array} A new array.
@@ -650,6 +887,132 @@ GNN.Array([1, 2], [3, [4, 5]], 6).flatten();
                 rv.push.apply(rv, args);
             }
             return rv;
+        },
+        uniq: function() {
+            // TODO
+        },
+        /**
+            Returns a new array of the set-theoretic union of
+            <code>this</code> and the given array.
+            @param {ArrayLike} other
+            @param {function} [fun=function(a, b){ return a===b; }]
+                An equality function.
+            @returns {GNN.Array}
+            @description
+                If <code>this</code> and <code>other</code> are both unique,
+                then the resulting array is also unique.
+            @example
+GNN.Array(1, 3, 5, 7).union([2, 4, 6]);
+// => [1, 3, 5, 7, 2, 4, 6]
+GNN.Array(1, 1, 2, 5).union([2, 2, 4, 4, 5]);
+// => [1, 1, 2, 5, 4, 4]
+        */
+        union: function(other, fun) {
+            return toA(this).concat(A.diff(other, this, fun));
+        },
+        /**
+            Returns a new array of the set-theoretic intersection of
+            <code>this</code> and the given array.
+            @param {ArrayLike} other
+            @param {function} [fun=function(a, b){ return a===b; }]
+                An equality function.
+            @returns {GNN.Array}
+            @description
+                If <code>this</code> and <code>other</code> is unique,
+                then the resulting array is also unique.
+            @example
+GNN.Array(1, 3, 5, 7).inter([2, 4, 6]);
+// => []
+GNN.Array(1, 1, 2, 5).inter([2, 2, 4, 4, 5]);
+// => [2, 5]
+        */
+        inter: function(other, fun) {
+            if (!isFun(fun)) {
+                /** @ignore */
+                fun = function(a, b){ return a === b; };
+            }
+            return A.filter(this, function(v) {
+                return A.some(other, function(w){ return fun(v, w); });
+            });
+        },
+        /**
+            Returns a new array of the set-theoretic difference of
+            <code>this</code> and the given array.
+            @param {ArrayLike} other
+            @param {function} [fun=function(a, b){ return a===b; }]
+                An equality function.
+            @returns {GNN.Array}
+            @description
+                If <code>this</code> is unique,
+                then the resulting array is also unique.
+            @example
+GNN.Array(1, 3, 5, 7).diff([2, 4, 6]);
+// => [1, 3, 5, 7]
+GNN.Array(1, 1, 2, 5).diff([2, 2, 4, 4, 5]);
+// => [1, 1]
+        */
+        diff: function(other, fun) {
+            if (!isFun(fun)) {
+                fun = function(a, b){ return a === b; };
+            }
+            return A.filter(this, function(v) {
+                return !A.some(other, function(w){ return fun(v, w); });
+            });
+        },
+        /**
+            Returns a new array with <code>n<code> times copied elements
+            of the array.
+            @param {number} n
+            @returns {GNN.Array}
+            @throws {TypeError}
+                If <code>n</code> is not a number.
+            @example
+GNN.Array(1, 2, 3).repeat(2);
+// => [1, 2, 3, 1, 2, 3]
+        */
+        repeat: function(n) {
+            if (typeof n != 'number') {
+                throw new TypeError('repeat: not a number');
+            }
+            var r = [];
+            for (var i=0; i < n; i++) {
+                r = r.concat(toA(this));
+            }
+            return r;
+        },
+        /**
+            Invokes the given function for each n-th combination of
+            the elements.
+            @param {number} n
+            @param {function} fun
+            @throws {TypeError}
+                If <code>n</code> is not a number or
+                <code>fun</code> is not a function.
+        */
+        combination: function(n, fun) {
+            if (typeof n != 'number') {
+                throw new TypeError('combination: not a number');
+            }
+            if (isFun(fun)) {
+                throw new TypeError('combination: not a function');
+            }
+            // TODO
+        },
+        /**
+            Invokes the given function for each n-th permutation of
+            the elements.
+            @param {number} n
+            @param {function} fun
+            @throws {TypeError}
+                If <code>n</code> is not a number or
+                <code>fun</code> is not a function.
+        */
+        permutation: function(n, fun) {
+            // TODO
+            // circular one? necklace?
+        },
+        product: function(args) {
+            // TODO
         },
 
         // syntactic sugars
@@ -804,7 +1167,9 @@ GNN.Array.last([ 1, 2, 3, 4 ], 2); // => [3, 4]
     A._preserveReturnValue = [
         'concat', 'slice',
         'map', 'filter',
-        'zmap', 'flatten', 'zip', 'compact', 'clone',
+        'zmap', 'zip', 'take', 'drop', 'flatten', 'uniq',
+        'union', 'inter', 'diff', 'repeat',
+        'compact', 'clone',
     ];
     var installArrayWrapper = function(k) {
         if (!k) return;
