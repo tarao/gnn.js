@@ -144,6 +144,15 @@
         var hA = { a: 1, b: 2, c: 3, d: 4 };
         hA.b = hA;
 
+        var hB = { a: 1, b: 2, c: 3 };
+        var hC = { a: 1, b: 2, c: 3, d: 4 };
+        var hD = { a: 1, b: 2, c: 3 };
+        var hE = { a: 1, b: 2, c: 3, d: 4 };
+        hB.b = hE;
+        hC.b = hB;
+        hD.b = hC;
+        hE.b = hB;
+
         t.ok(B.eq(h1, { a: 1, b: 2, c: 3 }));
         t.ok(B.eq(h2, { a: 1, b: { d: 4, e: 5 }, c: 3 }));
         t.ok(B.eq(h4, h3));
@@ -156,6 +165,7 @@
         t.ok(B.eq(h8, h3));
         t.ok(B.eq(h8, h9));
         t.ok(B.eq(h9, h8));
+        t.ok(B.eq(hB, hD));
 
         t.is(B.eq(h1, { a: 1, b: 2 }), false);
         t.is(B.eq(h1, { a: 1, b: 2, c: 3, d: 4 }), false);
